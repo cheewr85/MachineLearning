@@ -258,4 +258,150 @@ plt.figure(figsize=(13,8))
                  for my_feature in input_features])
                  
 ```
+- 학습 데이터와 검증 데이터의 손실을 비교
+- 원시 특성이 하나일 때는 가장 양호한 평균 제곱근 오차(RMSE)가 약 180이었음 
+```python
+   def train_model(
+       learning_rate,
+       steps,
+       batch_size,
+       training_examples,
+       training_targets,
+       validation_examples,
+       validation_targets):
+     """Trains a linear regression model of multiple features.
+     
+     In addition to training, this function also prints training progress information,
+     as well as a plot of the training and validation loss over time.
+     
+     Args:
+       learning_rate: A 'float', the learning rate.
+       steps: A non-zero 'int', the total number of training steps. A training step
+         consists of a forward and backward pass using a single batch.
+       batch_size: A non-zero 'int', the batch size.
+       training_examples: A 'DataFrame' containing one or more columns from
+         'california_housing_dataframe' to use as input features for training.
+       training_targets: A 'DataFrame' containing exactly one column from
+         'california_housing_dataframe' to use as target for training.
+       validation_examples: A 'DataFrame' containing one or more columns from
+         'california_housing_dataframe' to use as input features for validation.
+       validation_targets: A 'DataFrame' containing exactly one column from
+         'california_housing_dataframe' to use as target for validation.
+     
+     Returns:
+       A 'LinearRegressor' object trained on the training data.
+     """
+     
+     periods = 10
+     steps_per_period = steps / periods
+     
+     # Create a linear regressor object.
+     my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=learnin_rate)
+     my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
+     linear_regressor = tf.estimator.LinearRegressor(
+         feature_columns=construct_feature_columns(training_examples),
+         optimizer=my_optimizer
+     )
+     
+     # Create input functions.
+     training_input_fn = lambda: my_input_fn(
+         training_examples,
+         training_targets["median_house_value"],
+         batch_size=batch_size)
+     predict_training_input_fn = lambda: my_input_fn(
+         training_examples,
+         training_targets["median_house_value"],
+         num_epochs=1,
+         shuffle=False)
+     predict_validation_input_fn = lambda: my_input_fn(
+         validation_examples, validation_targets["median_house_value"],
+         num_epochs=1,
+         shuffle=False)
+         
+     # Train the model, but do so inside a loop so that we can periodically assess
+     # loss metrics.
+     print("Training model...")
+     print("RMSE (on training data):")
+     training_rmse = []
+     validation_rmse = []
+     for period in range(0, periods):
+       # Train the model, starting from the prior state.
+       linear_regressor.train(
+           input_fn=training_input_fn,
+           steps=steps_per_period,
+       )
+       # Take a break and compute predictions.
+       training_predictions = linear_regressor.predict(input_fn=predict_training_input_fn)
+       training_predictions = np.array([item['predictions'][0] for item in training_predictions])
+       
+       validation_predictions = linear_regressor.predict(input_fn=predict_validation_input_fn)
+       validation_predictions = np.array([item['predictions'][0] for item in validation_predictions])
+       
+       # Compute training and validation loss.
+       training_root_mean_squared_error = math.sqrt(
+           metrics.mean_squared_error(training_predictions, training_targets))
+       validation_root_mean_squared_error = math.sqrt(
+           metrics.mean_squared_error(validation_predictions, validation_targets))
+       # Ocassionally print the current loss.
+       print("   period %02d : %0.2f" % (period, training_root_mean_squared_error))
+       # Add the loss metrics from this period to our list.
+       training_rmse.append(training_root_mean_squared_error)
+       validation_rmse.append(validation_root_mean_squared_error)
+     print("Model training finished.")
+     
+     # Output a graph of loss metrics over periods.
+     plt.ylabel("RMSE")
+     plt.xlabel("Periods")
+     plt.title("Root Mean Squared Error vs. Periods")
+     plt.tight_layout()
+     plt.plot(training_rmse, label="training")
+     plt.plot(validation_rmse, label="vcalidation")
+     plt.legend()
+     
+     return linear_regressor         
+```
+```python
+   linear_regressor = train_model(
+       learning_rate=0.00003,
+       steps=500,
+       batch_size=5,
+       training_examples=training_examples,
+       training_targets=training_targets,
+       validation_examples=validation_examples,
+       validation_targets=validation_targets)
+```
+- 초기 12000/5000 일 경우
+<img src="https://user-images.githubusercontent.com/32586985/69421640-e6e6d680-0d64-11ea-9c41-dc94a1ad0a27.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/69421645-e9e1c700-0d64-11ea-9e2b-e466f507e98f.PNG">
 
+- 10500/6500 일 경우
+<img src="https://user-images.githubusercontent.com/32586985/69421920-a76cba00-0d65-11ea-8e36-0b23b6ead7c2.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/69421924-ab98d780-0d65-11ea-8e30-766add9cd38f.PNG">
+
+### 작업 5: 테스트 데이터로 평가
+- 테스트 데이터 세트를 로드하고 이를 기준으로 모델을 평가함 
+- 해당 표본의 특이성에 대한 과적합이 발생하지 않았는지 확인해야함 
+```python
+   california_hosuing_test_data = pd.read_csv("https://download.mlcc.google.com/mledu-datasets/california_housing_test.csv", sep=",")
+   test_examples = preprocess_features(california_housing_test_data)
+   test_targets = preprocess_targets(california_housing_test_data)
+   
+   predict_test_input_fn = lambda: my_input_fn(
+         test_examples,
+         test_targets["median_house_value"],
+         num_epochs=1,
+         shuffle=False)
+         
+   test_predictions = linear_regressor.predict(input_fn=predict_test_input_fn)
+   test_predictions = np.array([item['predictions'][0] for item in test_predictions])
+   
+   root_mean_squared_error = math.sqrt(
+       metrics.mean_squared_error(test_predictions, test_targets))
+       
+   print("Final RMSE (on test data): %0.2f" % root_mean_squared_error)                  
+```
+- 12000/5000 인 경우
+<img src="https://user-images.githubusercontent.com/32586985/69421689-ffef8780-0d64-11ea-9386-b0807fff0ba2.PNG">
+
+- 10500/6500 인 경우
+<img src="https://user-images.githubusercontent.com/32586985/69421926-ae93c800-0d65-11ea-83fa-f068bfc20f76.PNG">
