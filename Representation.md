@@ -431,5 +431,90 @@
            steps=steps_per_period,
        )
        # Take a break and compute predictions.
+       training_predictions = linear_regressor.predict(input_fn=predict_training_input_fn)
+       training_predictions = np.array([item['predictions'][0] for item in training_predictions])
        
+       validation_predictions = linear_regressor.predict(input_fn=predict_validation_input_fn)
+       validation_predictions = np.array([item['predictions'][0] for item in validation_predictions])
+       
+       # Compute training and validation loss.
+       training_root_mean_squared_error = math.sqrt(
+           metrics.mean_squared_error(training_predictions, training_targets))
+       validation_root_mean_squared_error = math.sqrt(
+           metrics.mean_squared_error(validation_predictions, validation_targets))
+       # Occasionally print the current loss.
+       print("  period %02d : %0.2f" % (period, training_root_mean_squared_error))
+       # Add the loss metrics from this period to our list.
+       training_rmse.append(training_root_mean_squared_error)
+       validation_rmse.append(validation_root_mean_squared_error)
+     print("Model training finished.")
+     
+     
+     # Output a graph of loss metrics over periods.
+     plt.ylabel("RMSE")
+     plt.xlabel("Periods")
+     plt.title("Root Mean Squared Error vs. Periods")
+     plt.tight_layout()
+     plt.plot(training_rmse, label="training")
+     plt.plot(validation_rmse, label="validation")
+     plt.legend()
+     
+     return linear_regressor
 ```
+- 상관성을 다양한 데이터를 비교하여서 최적의 안을 아래의 값으로 찾아냄
+```python
+   minimal_features = [
+     "median_income",
+     "latitude",
+   ]
+   
+   minimal_training_examples = training_examples[minimal_features]
+   minimal_validation_examples = validation_examples[minimal_features]
+   
+   _ = train_model(
+       learning_rate=0.01,
+       steps=500,
+       batch_size=5,
+       training_examples=minimal_training_examples,
+       training_targets=training_targets,
+       validation_examples=minimal_validation_examples,
+       validation_targets=validation_targets)
+```
+<img src="https://user-images.githubusercontent.com/32586985/69489245-1eb26300-0eb8-11ea-8653-cfacf0f28eba.PNG">
+
+
+### 작업 2: 위도 활용 고도화
+- latitude와 median_house_value로 그래프를 그리면 선형 관계가 없다는 점이 드러남 
+- 로스앤젤레스 및 샌프란시스코에 해당하는 위치 부근에 마루가 나타남 
+```python
+   plt.scatter(training_examples["latitude"], training_targets["median_house_value"])
+```
+<img src="https://user-images.githubusercontent.com/32586985/69489337-caa87e00-0eb9-11ea-88b3-49eec4955a03.PNG">
+
+- 위도를 더 잘 활용할 수 있는 합성 특성
+- 공간을 10개의 버킷으로 나누어 latitude_32_to_33, latitude_33_to_34등의 특성을 만들고 latitude가 해당 버킷의 범위에 포함되면 1.0 값을 그렇지 않으면 0.0 값을 표시함 
+- 상관행렬과 연관
+```python
+   LATITUDE_RANGES = zip(range(32, 44), range(33, 45))
+   
+   def select_and_transform_features(source_df):
+     selected_examples = pd.DataFrame()
+     selected_examples["median_income"] = source_df["median_income"]
+     for r in LATITUDE_RANGES:
+       selected_examples["latitude_%d_to_%d" % r] = source_df["latitude"].apply(
+         lambda l: 1.0 if l >= r[0] and l < r[1] else 0.0)
+     return selected_examples
+     
+   selected_training_examples = select_and_transform_features(training_examples)
+   selected_validation_examples = select_and_transform_features(validation_examples)
+   
+   _ = train_model(
+       learning_rate=0.01,
+       steps=500,
+       batch_size=5,
+       training_examples=selected_training_examples,
+       training_targets=training_targets,
+       validation_examples=selected_validation_examples,
+       validation_targets=validation_targets)
+```
+<img src="https://user-images.githubusercontent.com/32586985/69489392-ea8c7180-0eba-11ea-8755-aaff2b421044.PNG">
