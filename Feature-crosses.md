@@ -374,4 +374,202 @@
 <img src="https://user-images.githubusercontent.com/32586985/70383244-964eba80-19ad-11ea-9a51-19fd9addbec2.PNG">
 
 ### 불연속 특성에 대한 원-핫 인코딩 
-- 
+- 문자열, 열거형, 정수 등의 불연속 특성은 일반적으로 로지스틱 회귀 모델을 학습하기 전에 이진 특성 패밀리로 변환됨 
+- 0,1,2만 취할 수 있는 합성 특성을 만들어 몇 개의 학습포인트가 있다고 가정해봄
+<img src="https://user-images.githubusercontent.com/32586985/70383548-0a3f9180-19b3-11ea-8ef2-c49ebe8c4add.PNG">
+
+- 가능한 각 범주 값에 대해 실수값으로 새 이진 특성을 만듬/이 특성은 2가지 값만 취할 수 있음 
+- 예에 해당 값이 포함되었으면 1.0이고 그렇지 않으면 0.0임 
+- 위 예제에서는 범주형 특성을 3개의 특성으로 변환하므로 이제 학습 포인트는 다음과 같음 
+<img src="https://user-images.githubusercontent.com/32586985/70383566-4541c500-19b3-11ea-86b7-516ef7855e3b.PNG">
+
+### 버킷화(비닝) 특성
+- 버킷화를 비닝이라고 함 
+- population을 다음과 같이 3가지로 버킷화 할 수 있음 
+  - bucket_0( < 5000):인구가 적은 지역에 해당 
+  - bucket_1( 5000 - 25000):인구가 중간 정도인 지역에 해당 
+  - bucket_2( > 25000):인구가 많은 지역에 해당 
+- 이러한 버킷 정의로 다음과 같은 population 벡터를 변환할 수 있음 
+```python
+   [[10001], [42004], [2500], [18000]]
+```
+- 버킷화 특성 벡터는 다음과 같음 
+```python
+   [[1], [2], [0], [1]]
+```
+- 특성 값은 이제 버킷 색인임/이러한 색인은 불연속 특성으로 간주됨/이러한 특성은 위와 같이 원-핫 표현으로 변환되는것이 일반적이며 과정은 투명함 
+- 버킷화 특성에 대한 열을 정의하려면 numeric_column을 사용하는 대신 bucketized_column을 사용함 
+- 이 특성 열은 입력으로 취한 숫자 열을 boundaries 인수에 지정된 버킷 경계를 사용하여 버킷화 특성으로 변환함 
+- 다음 코드는 households 및 longitude에 대한 버킷화 특성 열을 정의함 
+- get_quantile_based_boundaries 함수는 분위를 기준으로 경계를 계산하므로 각 버킷은 동일한 수의 요소를 포함함 
+```python
+   def get_quantile_based_boundaries(feature_values, num_buckets):
+     boundaries = np.arange(1.0, num_buckets) / num_buckets
+     quantiles = feature_values.quantile(boundaries)
+     return [quantiles[q] for q in quantiles.keys()]
+     
+   # Divide households into 7 buckets.
+   households = tf.feature_column.numeric_column("households")
+   bucketized_households = tf.feature_column.bucketized_column(
+     households, boundaries=get_quantile_based_boundaries(
+       california_housing_dataframe["households"], 7))
+   
+   # Divide longitude into 10 buckets.
+   longitude = tf.feature_column.numeric_column("longitude")
+   bucketized_longitude = tf.feature_column.bucketized_column(
+     longitude, boundaries=get_quantile_based_boundaries(
+       california_housing_dataframe["longitude"], 10))
+```
+
+### 작업 1:버킷화 특성 열로 모델 학습 
+- 예의 모든 실수값 확률을 버킷화하고 모델을 학습시킨 후 결과가 개선되는지 확인 
+- 위의 코드에서는 두 개의 실수값 열(households 및 longitude)을 버킷화 특성 열로 변환함 
+- 이번에 수행할 작업은 나머지 열을 버킷화한 후 코드를 실행하여 모델을 학습시키는 것
+- 다양한 휴리스틱으로 버킷의 범위를 정할 수 있음 
+- 분위 기반 방식을 사용하여 각 버킷에 동일한 수의 예가 포함되도록 버킷 경계를 선택함 
+```python
+   def construct_feature_columns():
+     """Construct the TensorFlow Feature Columns.
+     
+     Returns:
+       A set of feature columns
+     """
+     households = tf.feature_column.numeric_column("households")
+     longitude = tf.feature_column.numeric_column("longitude")
+     latitude = tf.feature_column.numeric_column("latitude")
+     housing_median_age = tf.feature_column.numeric_column("housing_median_age")
+     median_income = tf.feature_column.numeric_column("median_income")
+     rooms_per_person = tf.feature_column.numeric_column("rooms_per_person")
+     
+     # Divide households into 7 buckets.
+     bucketized_households = tf.feature_column.bucketized_column(
+       households, boundaries=get_quantile_based_boundaries(
+         training_examples["households"], 7))
+     
+     # Divide longitude into 10 buckets.
+     bucketized_longitude = tf.feature_column.bucketized_column(
+       longitude, boundaries=get_quantile_based_boundaries(
+         training_examples["longitude"], 10))
+     
+     # Divide latitude into 10 buckets.
+     bucketized_latitude = tf.feature_column.bucketized_column(
+       latitude, boundaries=get_quantile_based_boundaries(
+         training_examples["latitude"], 10))
+     
+     # Divide housing_median_age into 7 buckets.
+     bucketized_housing_median_age = tf.feature_column.bucketized_column(
+       housing_median_age, boundaries=get_quantile_based_boundaries(
+         training_examples["housing_median_age"], 7))
+     
+     # Divide median_income into 7 buckets.
+     bucketized_median_income = tf.feature_column.bucketized_column(
+       median_income, boundaries=get_quantile_based_boundaries(
+         training_examples["median_income"], 7))
+     
+     # Divide rooms_per_person into 7 buckets.
+     bucketized_rooms_per_person = tf.feature_column.bucketized_column(
+       rooms_per_personm, boundaries=get_quantile_based_boundaries(
+         training_examples["rooms_per_person"], 7))
+     
+     feature_columns = set([
+       bucketized_longitude,
+       bucketized_latitude,
+       bucketized_housing_median_age,
+       bucketized_households,
+       bucketized_median_income,
+       bucketized_rooms_per_person])
+       
+     return feature_columns
+     
+     
+     _ = train_model(
+         learning_rate=1.0,
+         steps=500,
+         batch_size=100,
+         feature_columns=construct_feature_columns(),
+         training_examples=training_examples,
+         training_targets=training_targets,
+         validation_examples=validation_examples,
+         validation_targets=validation_targets)         
+```
+<img src="https://user-images.githubusercontent.com/32586985/70383805-34934e00-19b7-11ea-9d12-e614e47855b3.PNG">
+
+
+### 작업 2:특성 교차를 사용하여 모델 학습 
+- 특성 교차를 이용 즉, 둘 이상의 특성을 교차하는 것은 선형 모델을 사용하여 비선형 관계를 학습하는 효과적인 방법임 
+- 지금까지 한 작업을 바탕으로 보면 latitude 특성만 학습에 사용하면 모델은 특정 위도에 있는 지역, 버킷화를 거쳤으므로 정확히는 특성 위도 범위에 포함된 지역이 다른 지역보다 집값이 비쌀 가능성이 높다는 사실을 학습할 수 있음 
+- longitude와 latitude를 교차하면 이 교차 특성은 잘 정의된 지역을 나타냄 
+- 모델에서 위도 및 경도 범위에 포함된 특정 지역이 다른 지역보다 집값이 비쌀 가능성이 높다는 사실을 학습하면 두 특성을 개별적으로 고려할 때보다 강한 신호가 됨 
+- 모델에 longitude와 latitude의 특성 교차를 추가하고 학습시켜 결과가 개선되는지 여부 확인 
+```python
+   def construct_feature_column():
+     """Construct the TensorFlow Feature Columns.
+     
+     Returns:
+       A set of feature columns
+     """
+     households = tf.feature_column.numeric_column("households")
+     longitude = tf.feature_column.numeric_column("longitude")
+     latitude = tf.feature_column.numeric_column("latitude")
+     housing_median_age = tf.feature_column.numeric_column("housing_median_age")
+     median_income = tf.feature_column.numeric_column("median_income")
+     rooms_per_person = tf.feature_column.numeric_column("rooms_per_person")
+     
+     # Divide households into 7 buckets.
+     bucketized_households = tf.feature_column.bucketized_column(
+       households, boundaries=get_quantile_based_boundaries(
+         training_examples["households"], 7))
+     
+     # Divide longitude into 10 buckets.
+     bucketized_longitude = tf.feature_column.bucketized_column(
+       longitude, boundaries=get_quantile_based_boundaries(
+         training_examples["longitude"], 10))
+     
+     # Divide latitude into 10 buckets.
+     bucketized_latitude = tf.feature_column.bucketized_column(
+       latitude, boundaries=get_quantile_based_boundaries(
+         training_examples["latitude"], 10))
+     
+     # Divide housing_median_age into 7 buckets.
+     bucketized_housing_median_age = tf.feature_column.bucketized_column(
+       housing_median_age, boundaries=get_quantile_based_boundaries(
+         training_example["housing_median_age"], 7))
+     
+     # Divide median_income into 7 buckets.
+     bucketized_median_income = tf.feature_column.bucketized_column(
+       median_income, boundaries=get_quantile_based_boundaries(
+         training_examples["median_income"], 7))
+         
+     # Divide rooms_per_person into 7 buckets.
+     bucketized_rooms_per_person = tf.feature_column.bucketized_column(
+       rooms_per_person, boundaries=get_quantile_based_boundaries(
+         training_examples["rooms_per_person"], 7))
+         
+     
+     long_x_lat = tf.feature_column.crossed_column(
+     set([bucketized_longitude, bucketized_latitude]), hash_bucket_size=1000)
+     
+     feature_columns = set([
+       bucketized_longitude,
+       bucketized_latitude,
+       bucketized_housing_median_age,
+       bucketized_households,
+       bucketized_median_income,
+       bucketized_rooms_per_person,
+       long_x_lat])
+       
+     return feature_columns  
+     # longitude와 latitude를 합성교차를 했지만 위에 있는 버킷화 열 중 다양한 조합을 통해서 다른 합성 특성을 만들 수도 있음  
+     
+     _ = train_model(
+         learning_rate=1.0,
+         steps=500,
+         batch_size=100,
+         feature_columns=construct_feature_columns(),
+         training_examples=training_examples,
+         training_targets=training_targets,
+         validation_examples=validation_examples,
+         validation_targets=validation_targets)
+         
+``` 
+<img src="https://user-images.githubusercontent.com/32586985/70383941-dd42ad00-19b9-11ea-9914-8d067f1cdeff.PNG">
