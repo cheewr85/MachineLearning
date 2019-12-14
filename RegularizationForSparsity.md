@@ -56,3 +56,196 @@
     - L2에서 L1으로 정규화를 전환하면 학습된 모든 가중치를 완화함
   - Q3.L1정규화율(람다)을 높이면 학습된 가중치에 어떤 영향을 주는가?
     - L1정규화율을 높이면 일반적으로 학습된 가중치가 완화되지만, 정규화율이 지나치게 높아지면 모델이 수렴할 수 없고 손실도 굉장히 높아짐 
+
+
+## 프로그래밍 실습
+- 희소성과 L1 정규화
+- 복잡도를 낮추는 방법 중 하나는 가중치를 정확히 0으로 유도하는 함수를 사용하는것
+- 회귀와 같은 선형 모델에서 가중치 0은 해당 특성을 전혀 사용하지 않는 것과 동일함
+- 과적합이 방지될 뿐 아니라 결과 모델의 효율성이 올라감
+- 희소성을 높이는 좋은 방법임 
+```python
+   from __future__ import print_function
+   
+   import math
+   
+   from IPython import display
+   from matplotlib import cm
+   from matplotlib import gridspec
+   from matplotlib import pyplot as plt
+   import numpy as np
+   import pandas as pd
+   from sklearn import metrics
+   %tensorflow_version 1.x
+   import tensorflow as tf
+   from tensorflow.python.data import Dataset
+   
+   tf.logging.set_verbosity(tf.logging.ERROR)
+   pd.options.display.max_rows = 10
+   pd.options.display.float_format = '{:.1f}'.format
+   
+   california_housing_dataframe = pd.read_csv("https://download.mlcc.google.com/mledu-datasets/california_housing_train.csv", sep=",")
+   
+   california_housing_dataframe = california_housing_dataframe.reindex(np.random.permutation(california_housing_dataframe.index))
+   
+   def preprocess_features(california_housing_dataframe):
+     """Prepares input features from California housing data set.
+     
+     Args:
+       california_housing_dataframe: A Pandas DataFrame expected to contain data
+         from the California housing data set.
+     Returns:
+       A DataFrame that contains the features to be used for the model, including
+       synthetic features.
+     """
+     selected_features = california_housing_dataframe[
+       ["latitude",
+        "longitude",
+        "housing_median_age",
+        "total_rooms",
+        "total_bedrooms",
+        "population",
+        "households",
+        "median_income"]]
+     processed_features = selected_features.copy()
+     # Create a synthetic feature.
+     processed_features["rooms_per_person"] = (
+       california_housing_dataframe["total_rooms"] / 
+       california_housing_dataframe["population"])
+     return processed_features
+   
+   def preprocess_targets(california_housing_dataframe):
+     """Prepares target features (i.e., labels) from California housing data set.
+     
+     Args:
+       california_housing_dataframe: A Pandas DataFrame expected to contain data
+         from the California housing data set.
+     Returns:
+       A DataFrame that contains the target feature.
+     """
+     output_targets = pd.DataFrame()
+     # Create a boolean categorical feature representing whether the 
+     # median_house_value is above a set threshold.
+     output_targets["median_house_value_is_high"] = (
+       california_housing_dataframe["median_house_value"] > 265000).astype(float)
+     return output_targets
+     
+   # Choose the first 12000 (out of 17000) examples for training
+   training_examples = preprocess_features(california_housing_dataframe.head(12000))
+   training_targets = preprocess_targets(california_housing_dataframe.head(12000))
+   
+   # Choose the last 5000 (out of 17000) examples for validation
+   validation_examples = preprocess_features(california_housing_dataframe.tail(5000))
+   validation_targets = preprocess_targets(california_housing_dataframe.tail(5000))
+   
+   # Double-check that we've done the right thing.
+   print("Training examples summary:")
+   display.display(training_examples.describe())
+   print("Validation examples summary:")
+   display.display(validation_examples.describe())
+   
+   print("Training targets summary:")
+   display.display(training_targets.describe())
+   print("Validation targets summary:")
+   display.display(validation_targets.describe())
+   
+   def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
+       """Trains a linear regression model.
+       
+       Args:
+         features: pandas DataFrame of features
+         targets: pandas DataFrame of targets
+         batch_size: Size of batches to be passed to the model
+         shuffle: True or False Whether to shuffle the data.
+         num_epochs: Number of epochs for which data should be repeated. None = repeat indefinitely
+       Returns:
+         Tuple of (features, labels) for next data batch
+       """
+       
+       # Convert pandas data into a dict of np arrays.
+       features = {key:np.array(value) for key,value in dict(features).items()}
+       
+       # Construct a dataset, and configure batching/repeating.
+       ds = Dataset.from_tensor_slices((features,targets)) # warning: 2GB limit
+       ds = ds.batch(batch_size).repeat(num_epochs)
+       
+       # Shuffle the data, if specified.
+       if shuffle:
+         ds = ds.shuffle(10000)
+       
+       # Return the next batch of data.
+       features, labels = ds.make_one_shot_iterator().get_next()
+       return features, labels
+       
+   def get_quantile_based_buckets(feature_values, num_buckets):
+     quantiles = feature_values.quantile(
+       [(i+1.)/(num_buckets + 1.) for i in range(num_buckets)])
+     return [quantiles[q] for q in quantiles.keys()]
+     
+   def construct_feature_columns():
+     """Construct the TensorFlow Feature Columns.
+     
+     Returns:
+       A set of feature columns
+     """
+     
+     bucketized_households = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("households"),
+       boundaries=get_quantile_based_buckets(training_examples["households"], 10))
+     bucketized_longitude = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("longitude"),
+       boundaries=get_quantile_based_buckets(training_examples["longitude"], 50))
+     bucketized_latitude = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("latitude"),
+       boundaries=get_quantile_based_buckets(training_examples["latitude"], 50))
+     bucketized_housing_median_age = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("housing_median_age"),
+       boundaries=get_quantile_based_buckets(training_examples["housing_median_age"], 10))
+     bucketized_total_rooms = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("total_rooms"),
+       boundaries=get_quantile_based_buckets(training_examples["total_rooms"], 10))
+     bucketized_total_bedrooms = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("total_bedrooms"),
+       boundaries=get_quantile_based_buckets(training_examples["total_bedrooms"], 10))
+     bucketized_population = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("population"),
+       boundaries=get_quantile_based_buckets(training_examples["population"], 10))
+     bucketized_median_income = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("median_income"),
+       boundaries=get_quantile_based_buckets(training_examples["median_income"], 10))
+     bucketized_rooms_per_person = tf.feature_column.bucketized_column(
+       tf.feature_column.numeric_column("rooms_per_person"),
+       boundaries=get_quantile_based_buckets(training_examples["rooms_per_person"], 10))
+       
+     long_x_lat = tf.feature_column.crossed_column(
+       set([bucketized_longitude, bucketized_latitude]), hash_bucket_size=1000)
+     
+     feature_columns = set([
+       long_x_lat,
+       bucketized_longitude,
+       bucketized_latitude,
+       bucketized_housing_median_age,
+       bucketized_total_rooms,
+       bucketized_total_bedrooms,
+       bucketized_population,
+       bucketized_households,
+       bucketized_median_income,
+       bucketized_rooms_per_person])
+       
+     return feature_columns  
+     
+     def model_size(estimator):
+       variables = estimator.get_variable_names()
+       size = 0
+       for variable in variables:
+         if not any(x in variable
+                    for x in ['global_step',
+                              'centered_bias_weight',
+                              'bias_weight',
+                              'Ftrl']
+                   ):
+           size += np.count_nonzero(estimator.get_variable_value(variable))
+       return size       
+```
+
+### 작업 1:효과적인 정규화 계수 구하기
