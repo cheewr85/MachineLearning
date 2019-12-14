@@ -31,3 +31,28 @@
 - L1의 미분계수는 매번 가중치에서 일정 상수를 빼는 것으로 생각하면 됨/L1은 0에서 불연속성을 가지며 이로 인해 0을 지나는 빼기 결과값은 0이 됨
 - L1을 통해 가중치가 제거됨/모든 가중치의 절대값에 페널티를 줌
 <img src="https://user-images.githubusercontent.com/32586985/70844509-5e4fe780-1e85-11ea-82ed-b90f7c66fab9.PNG">
+
+
+## 실습
+- L1 정규화 검사
+  - 작업1:L2 정규화/정규화율(람다):0.1
+  <img src="https://user-images.githubusercontent.com/32586985/70844781-29de2a80-1e89-11ea-969d-962e56d52886.PNG">
+  
+  - 작업2:L2 정규화/정규화율(람다):0.3
+  <img src="https://user-images.githubusercontent.com/32586985/70844786-411d1800-1e89-11ea-95ea-088dbf11a8ea.PNG">
+  
+  - 작업3:L1 정규화/정규화율(람다):0.1
+  <img src="https://user-images.githubusercontent.com/32586985/70844789-55f9ab80-1e89-11ea-9c51-c1e63dc0a9c5.PNG">
+  
+  - 작업4:L1 정규화/정규화율(람다):0.3
+  <img src="https://user-images.githubusercontent.com/32586985/70844797-732e7a00-1e89-11ea-8fd3-c9400977dfa5.PNG">
+  
+  - 작업5:L1 정규화/정규화율(람다):3(실험)
+  <img src="https://user-images.githubusercontent.com/32586985/70844801-7fb2d280-1e89-11ea-83e4-d5741f2b5f49.PNG">
+  
+  - Q1.L2에서 L1으로 정규화를 전환하면 테스트 손실과 학습 손실 사이의 델타에 어떤 영향을 주는가?
+    - L2에서 L1으로 정규화를 전환하면 테스트 손실과 학습 손실 사이의 델타가 대폭 줄어듬
+  - Q2.L2에서 L1으로 정규화를 전환하면 학습된 가중치에 어떤 영향을 주는가?
+    - L2에서 L1으로 정규화를 전환하면 학습된 모든 가중치를 완화함
+  - Q3.L1정규화율(람다)을 높이면 학습된 가중치에 어떤 영향을 주는가?
+    - L1정규화율을 높이면 일반적으로 학습된 가중치가 완화되지만, 정규화율이 지나치게 높아지면 모델이 수렴할 수 없고 손실도 굉장히 높아짐 
