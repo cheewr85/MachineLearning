@@ -91,7 +91,7 @@
   - 과제1.:x1과 x2만 사용하여 가능한 한 최고의 모델로 학습시켜 본다/자유롭게 설정 변경 가능
   - 얻을 수 있는 최고의 테스트 손실은 얼마인가?/모델 출력 표면은 얼마나 매끄러운가?
   - 레이어를 추가하고 노드를 많이 추가하면 좋지만 모델 속도가 느려지고 좋지 않음/모델을 해석하기도 어려움
-  <img src="https://user-images.githubusercontent.com/32586985/70858950-c6b6cb80-1f4e-11ea-8d11-5e43d917f663.PNG>
+  <img src="https://user-images.githubusercontent.com/32586985/70858950-c6b6cb80-1f4e-11ea-8d11-5e43d917f663.PNG">
   
   - 레이어, 노드를 줄여 조금은 부드러운 형태를 생성함
   <img src="https://user-images.githubusercontent.com/32586985/70858963-0e3d5780-1f4f-11ea-9653-fe74a0747966.PNG">
