@@ -88,3 +88,305 @@
   
 - 나선형 신경망 
 - 잡음이 있는 나선형임/선형 모델은 실패하고 직접 정의된 특성 교차도 구성이 어려울 수 있음 
+  - 과제1.:x1과 x2만 사용하여 가능한 한 최고의 모델로 학습시켜 본다/자유롭게 설정 변경 가능
+  - 얻을 수 있는 최고의 테스트 손실은 얼마인가?/모델 출력 표면은 얼마나 매끄러운가?
+  - 레이어를 추가하고 노드를 많이 추가하면 좋지만 모델 속도가 느려지고 좋지 않음/모델을 해석하기도 어려움
+  <img src="https://user-images.githubusercontent.com/32586985/70858950-c6b6cb80-1f4e-11ea-8d11-5e43d917f663.PNG>
+  
+  - 레이어, 노드를 줄여 조금은 부드러운 형태를 생성함
+  <img src="https://user-images.githubusercontent.com/32586985/70858963-0e3d5780-1f4f-11ea-9653-fe74a0747966.PNG">
+  
+  - 학습률,정규화,정규화율,노이즈 등을 조정하여 조금 더 부드럽고 매끄러운 표면과 손실을 줄일 수 있음 
+  
+  
+  - 과제2:신경망이라도 최고의 성능을 도달하기 위해서는 특성 추출이 일부 필요함
+  - 추가 교차 특성이나 sin(X1),sin(X2)과 같은 기타 변환을 추가해보아라
+  - 더 나은 모델이 도출되는가?/모델 표면이 더 매끄러워지는가?
+  - 기타 변환을 추가할 경우 첫 번째 레이어에서 특성이 훨씬 복잡해짐/곡선 또한 복잡해지는 구조를 가지게 됨
+  - 레이어와 뉴런의 수를 줄이고 학습률일 낮추어봄/데이터가 적합해지고 손실 모델도 더 나아짐
+  - 단 하나의 히든 레이어와 5개의 뉴런만 있는 단순한 모델에서도 학습률과 정규화율, 활성화 함수 등 몇 가지 다른 매개변수를 변경함
+  - 훨씬 나은 테스트 손실과 훨씬 부드러운 적합성 곡선을 얻을 수 있음 
+    - 영상의 해설만큼 결과값이 안 나오므로 사진 첨부 생략
+  
+  
+  ## 프로그래밍 실습 
+  - 표준 회귀 작업에서부터 시작
+  ```python
+     from __future__ import print_function
+     
+     import math
+     
+     from IPython import display
+     from matplotlib import cm
+     from matplotlib import gridspec
+     from matplotlib import pyplot as plt
+     import numpy as np
+     import pandas as pd
+     from sklearn import metrics
+     %tensorflow_version 1.x
+     import tensorflow as tf
+     from tensorflow.python.data import Dataset
+     
+     tf.logging.set_verbosity(tf.logging.ERROR)
+     pd.options.display.max_rows = 10
+     pd.options.display.float_format = '{:.1f}'.format
+     
+     california_housing_dataframe = pd.read_csv("https://download.mlcc.google.com/mledu-datasets/california_housing_train.csv", sep=",")
+     
+     california_housing_dataframe = california_housing_dataframe.reindex(np.random.permutation(california_housing_dataframe.index))
+     
+     def preprocess_features(california_housing_dataframe):
+       """Prepares input features from California housing data set.
+       
+       Args:
+         california_housing_dataframe: A Pandas DataFrame expected to contain data
+           from the California housing data set.
+       Returns:
+         A DataFrame that contains the features to be used for the model, including
+         synthetic features.
+       """
+       selected_features = california_housing_dataframe[
+         ["latitude",
+          "longitude",
+          "housing_median_age",
+          "total_rooms",
+          "total_bedrooms",
+          "population",
+          "households",
+          "median_income"]]
+       processed_features = selected_features.copy()
+       # Create a synthetic feature.
+       processed_features["rooms_per_person"] = (
+         california_housing_dataframe["total_rooms"] / 
+         california_housing_dataframe["population"])
+       return processed_features
+       
+     def preprocess_targets(california_housing_dataframe):
+       """Prepares targets features (i.e., labels) from California housing data set.
+       
+       Args:
+         california_housing_dataframe: A Pandas DataFrame expected to contain data
+           from the California housing data set.
+       Returns:
+         A DataFrame that contains the target feature.
+       """
+       output_targets = pd.DataFrame()
+       # Scale the target to be in units of thousands of dollars.
+       output_targets["median_house_value"] = (
+         california_housing_dataframe["median_house_value"] / 1000.0)
+       return output_targets
+     
+     # Choose the first 12000 (out of 17000) examples for training.
+     training_examples = preprocess_features(california_housing_dataframe.head(12000))
+     training_targets = preprocess_features(california_housing_dataframe.head(12000))
+     
+     # Choose the last 5000 (out of 17000) examples for validation.
+     validation_examples = preprocess_features(california_housing_dataframe.tail(5000))
+     validation_targets = preprocess_features(california_housing_datafrmae.tail(5000))
+     
+     # Double-check that we've done the right thing.
+     print("Training examples summary:")
+     display.display(training_examples.describe())
+     print("Validation examples summary:")
+     display.display(validation_examples.describe())
+     
+     print("Training targets summary:")
+     display.display(training_targets.describe())
+     print("Validation targets summary:")
+     display.display(validation_targets.describe())  
+  ```
+  
+- 신경망 구축
+- 신경망은 DNNRegressor 클래스에 의해 정의됨
+- hidden_units를 사용하여 신경망의 구조를 정의함/hidden_units 인수는 정수의 목록을 제공
+- 각 정수는 히든 레이어에 해당하고 포함된 노드의 수를 나타냄 
+- hidden_units=[3,10]
+  - 히든 레이어 2개를 갖는 신경망을 지정함
+  - 1번 히든 레이어는 노드 3개를 포함함
+  - 2번 히든 레이어는 노드 10개를 포함함
+- 레이어를 늘리려면 목록에 정수를 더 추가하면 됨/기본적으로 모든 히든 레이어는 ReLU 활성화를 사용하며 완전 연결성을 가짐 
+```python
+   def construct_feature_columns(input_features):
+     """Construct the TensorFlow Feature Columns.
+     
+     Args:
+       input_features: The names of the numerical input features to use.
+     Returns:
+       A set of feature columns
+     """
+     return set([tf.feature_column.numeric_column(my_feature)
+                 for my_feature in input_features])
+                 
+   def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
+       """Trains a neural net  regression model.
+       
+       Args:
+         features: pandas DataFrame of features
+         targets: pandas DataFrame of targets
+         batch_size: Size of batches to be passed to the model
+         shuffle: True or False. Whether to shuffle the data.
+         num_epochs: Number of epochs for which data should be repeated. None = repeat indefinitely
+       Returns:
+         Tuple of (features, labels) for next data batch
+       """
+       
+       # Convert pandas data into a dict of np arrays.
+       features = {key:np.array(value) for key,value in dict(features).items()}
+       
+       # Construct a dataset, and configure batching/repeating.
+       ds = Dataset.from_tensor_slices((features,targets)) # warning: 2GB limit
+       ds = ds.batch(batch_size).repeat(num_epochs)
+       
+       # Shuffle the data, if specified.
+       if shuffle:
+         ds = ds.shuffle(10000)
+         
+       # Return the next batch of data.
+       features, labels = ds.make_one_shot_iterator().get_next()
+       return features, labels
+       
+   def train_nn_regression_model(
+       learning_rate,
+       steps,
+       batch_size,
+       hidden_units,
+       training_examples,
+       training_targets,
+       validation_examples,
+       validation_targets):
+     """Trains a neural network regression model.
+     
+     In addition to trainig, this function also prints training progress information,
+     as well as a plot of the training and validation loss over time.
+     
+     Args:
+       learning_rate: A 'float', the learning rate.
+       steps: A non-zero 'int', the total number of training steps. A training step
+         consists of a forward and backward pass using a single batch.
+       batch_size: A non-zero 'int', the batch size.
+       hidden_units: A 'list' of int values, specifying the number of neurons in each layer.
+       training_examples: A 'DataFrame' containing one or more columns from
+         'california_housing_dataframe' to use as input features for training.
+       training_targets: A 'DataFrame' containing exactly one column from
+         'california_housing_dataframe' to use as target for training.
+       validation_examples: A 'DataFrame' containing one or more columns from
+         'california_housing_dataframe' to use as input features for validation.
+       validation_targets: A 'DataFrame' containing exactly one column from
+         'california_housing_dataframe' to use as target for validation.
+         
+     Returns:
+       A 'DNNRegressor' object trained on the training data.
+     """
+     
+     periods = 10
+     steps_per_period = steps / periods 
+     
+     # Create a DNNRegressor object.
+     my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+     my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
+     dnn_regressor = tf.estimator.DNNRegressor(
+         feature_columns=construct_feature_columns(training_examples),
+         hidden_units=hidden_units,
+         optimizer=my_optimizer
+     )
+     
+     # Create input functions.
+     training_input_fn = lambda: my_input_fn(training_examples,
+                                             training_targets["median_house_value"],
+                                             batch_size=batch_size)
+     predict_training_input_fn = lambda: my_input_fn(training_examples,
+                                                     training_targets["median_house_value"],
+                                                     num_epochs=1,
+                                                     shuffle=False)
+     predict_validation_input_fn = lambda: my_input_fn(validation_examples,
+                                                       validation_targets["median_house_value"],
+                                                       num_epochs=1,
+                                                       shuffel=False)
+     
+     # Train the model, but do so inside a loop so that we can periodically assess
+     # loss metrics.
+     print("Training model...")
+     print("RMSE (on training data):")
+     training_rmse = []
+     validation_rmse = []
+     for period in range (0, periods):
+       # Train the model, starting from the prior state.
+       dnn_regressor.train(
+           input_fn=training_input_fn,
+           steps=steps_per_period
+       )
+       # Take a break and compute predictions.
+       training_predictions = dnn_regressor.predict(input_fn=predict_training_input_fn)
+       training_predictions = np.array([item['predictions'][0] for item in training_predictions])
+       
+       validation_predictions = dnn_regressor.predict(input_fn=predict_validation_input_fn)
+       validation_predictions = np.array([item['predictions'][0] for item in validation_predictions])
+       
+       # Compute training and validation loss.
+       training_root_mean_squared_error = math.sqrt(
+           metrics.mean_squared_error(training_perdictions, training_targets))
+       validation_root_mean_squared_error = math.sqrt(
+           metrics.mand_squared_error(validation_perdictions, validation_targets))
+       # Occasionally print the current loss.
+       print("  period %02d : %0.2f" % (period, training_root_mean_squared_error))
+       # Add the loss metrics from this period to our list.
+       training_rmse.append(training_root_mean_squared_error)
+       validation_rmse.append(validation_root_mean_squared_error)
+     print("Model training finished")
+     
+     # Output a graph of loss metrics over periods.
+     plt.ylabel("RMSE")
+     plt.xlabel("Periods")
+     plt.title("Root Mean Squared Error vs. Periods")
+     plt.tight_layout()
+     plt.plot(training_rmse, label="training")
+     plt.plot(validation_rmse, label="validation")
+     plt.legend()
+     
+     print("Final RMSE (on training data):   %0.2f" % training_root_mean_squared_error)
+     print("Final RMSE (on validation data): %0.2f" % validation_root_mean_squared_error)
+     
+     return dnn_regressor                    
+```
+
+### 작업 1:NN 모델 학습 
+- RMSE 110미만으로 낮추는 것을 목표로 초매개변수 조정함 
+- 다양한 학습 설정을 수정하여 검증 데이터에 대한 정확성을 높이는 것
+```python
+   dnn_regressor = train_nn_regression_model(
+       learning_rate=0.001,
+       steps=2000,
+       batch_size=100,
+       hidden_units=[10, 10],
+       training_examples=training_examples,
+       training_targets=training_targets,
+       validation_examples=validation_examples,
+       validation_targets=validation_targets)
+```
+<img src="https://user-images.githubusercontent.com/32586985/70859621-15b62e00-1f5a-11ea-97c1-1a3154b4bbf5.PNG">
+
+### 작업2:테스트 데이터로 평가
+- 검증 성능 결과가 테스트 데이터에 대해서도 유지되는지 확인 
+- 만족할 만한 모델이 만들어졌다면 테스트 데이터로 평가하고 검증 성능과 비교해봄 
+- 적절한 데이터 파일을 로드하고 전처리한 후 predict 및 mean_squared_error를 호출함
+- 모든 레코드를 사용할 것이므로 테스트 데이터를 무작위로 추출할 필요는 없음 
+```python
+   california_housing_test_data = pd.read_csv("https://download.mlcc.google.com/mledu-datasets/california_housing_test.csv", sep=",")
+   
+   test_examples = preprocess_features(california_housing_test_data)
+   test_targets = preprocess_targets(california_housing_test_data)
+   
+   predict_testing_input_fn = lambda: my_input_fn(test_examples,
+                                                  test_targets["median_house_value"],
+                                                  num_epochs=1,
+                                                  shuffle=False)
+                                                  
+   test_predictions = dnn_regressor.predict(input_fn=predict_testing_input_fn)
+   test_predictions = np.array([item['predictions'][0] for item in test_predictions])
+   
+   root_mean_squared_error = math.sqrt(
+       metrics.mean_squared_error(test_predictions, test_targets))
+       
+   print("Final RMSE (on test data): %0.2f" % root_mean_squared_error)    
+```
+- Final RMSE (on test data): 104.66
