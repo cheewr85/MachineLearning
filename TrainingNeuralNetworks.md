@@ -322,3 +322,188 @@
 - 입력값을 -1,1 척도로 정규화함
 - 입력 특성이 대략 같은 척도일 때 NN의 학습 효율이 가장 높음 
 - 정규화된 데이터의 상태를 확인해봐라
+  - 정규화에 최소값과 최대값이 사용되므로 데이터 세트 전체에 한 번에 적용되도록 조치해야함 
+- 데이터 세트가 여러 개인 경우에는 학습 세트에서 추출한 정규화 매개변수를 테스트 세트에 동일하게 적용하는 것이 좋음 
+```python
+   def normalize_linear_scale(examples_dataframe):
+     """Returns a version of the input 'DataFrame' that has all its features normalized linearly."""
+     processed_features = pd.DataFrame()
+     processed_features["latitude"] = linear_scale(examples_dataframe["latitude"])
+     processed_features["longitude"] = linear_scale(examples_dataframe["longitude"])
+     processed_features["housing_median_age"] = linear_scale(examples_dataframe["housing_median_age"])
+     processed_features["total_rooms"] = linear_scale(examples_dataframe["total_rooms"])
+     processed_features["total_bedrooms"] = linear_scale(examples_dataframe["total_bedrooms"])
+     processed_features["population"] = linear_scale(examples_dataframe["population"])
+     processed_features["households"] = linear_scale(examples_dataframe["households"])
+     processed_features["median_income"] = linear_scale(examples_dataframe["median_income"])
+     processed_features["rooms_per_person"] = linear_scale(examples_dataframe["rooms_per_person"])
+     return processed_features
+     
+   normalized_dataframe = normalize_linear_scale(preprocess_features(california_housing_dataframe))
+   normalized_training_examples = normalized_dataframe.head(12000)
+   normalized_validation_examples = normalized_dataframe.tail(5000)
+   
+   _ = train_nn_regression_model(
+       my_optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.005),
+       steps=2000,
+       batch_size=50,
+       hidden_units=[10, 10],
+       training_examples=normalized_training_examples,
+       training_targets=training_targets,
+       validation_examples=normalized_validation_examples,
+       validation_targets=validation_targets)
+       
+```
+<img src="https://user-images.githubusercontent.com/32586985/71089983-4eb60300-21e5-11ea-944d-50d4f3c4a6f4.png">
+
+
+### 작업2:다른 옵티마이저 사용해 보기
+- Adagrad 옵티마이저/모델의 각 계수에 대해 학습률을 적응적으로 조정하여 유효 학습률을 단조적으로 낮춘다는 것
+  - 볼록 문제에는 적합하지만 비볼록 문제 신경망 학습에는 이상적이지 않을 수 있음
+  - Adagrad를 사용하려면 GradientDescentOptimizer 대신 AdagradOptimizer를 지정함
+  - 학습률을 더 높여야 할 수 있음 
+- Adam 옵티마이저
+  - 비볼록 최적화 문제에 효율적임
+  - tf.train.AdamOptimizer 메소드를 호출함 
+  - 선택적으로 몇 가지 초매개변수를 인수로 취하지만 인수 중 하나만 지정함 
+  - 프로덕션 설정에서는 선택적 초매개변수를 신중하게 지정하고 조정해야함 
+  
+```python
+   _, adagrad_training_losses, adagrad_validation_losses = train_nn_regression_model(
+       my_optimizer=tf.train.AdagradOptimizer(learning_rate=0.5),
+       steps=500,
+       batch_size=100,
+       hidden_units=[10, 10],
+       training_examples=normalized_training_examples,
+       training_targets=training_targets,
+       validation_examples=normalized_validation_examples,
+       validation_targets=validation_targets)
+       
+   # Adagrad 시험          
+```
+<img src="https://user-images.githubusercontent.com/32586985/71090502-807b9980-21e6-11ea-8260-14c06c036fad.png">
+
+```python
+   _, adam_training_losses, adam_validation_losses = train_nn_regression_model(
+       my_optimizer=tf.train.AdamOptimizer(learning_rate=0.009),
+       steps=500,
+       batch_size=100,
+       hidden_units=[10, 10],
+       training_examples=normalized_training_examples,
+       training_targets=training_targets,
+       validation_examples=normalized_validation_examples,
+       validation_targets=validation_targets)
+       
+   # Adam 시험    
+```
+<img src="https://user-images.githubusercontent.com/32586985/71090511-84a7b700-21e6-11ea-9509-4a562bc75afe.png">
+
+```python
+   plt.ylabel("RMSE")
+   plt.xlabel("Periods")
+   plt.title("Root Mean Squared Error vs. Periods")
+   plt.plot(adagrad_training_losses, label='Adagrad training')
+   plt.plot(adagrad_validation_losses, label='Adagrad validation')
+   plt.plot(adam_training_losses, label='Adam training')
+   plt.plot(adam_validation_losses, label='Adam validation')
+   _ = plt.legend()
+```
+<img src="https://user-images.githubusercontent.com/32586985/71090520-8a050180-21e6-11ea-862a-3e3f4c1e355d.png">
+
+
+### 작업3:대안적 정규화 방식 탐색
+- 다양한 특성에 대안적인 정규화를 시도하여 성능을 더욱 높임
+- 변환된 데이터의 요약 통계를 자세히 조사해 보면 선형 조정으로 인해 일부 특성이 -1에 가깝게 모이는 것을 알 수 있음 
+- 여러 특성의 중앙값이 0.0이 아닌 -0.8근처임 
+```python
+   _ = training_examples.hist(bins=20, figsize=(18, 12), xlabelsize=2)
+```
+<img src="https://user-images.githubusercontent.com/32586985/71091151-ef0d2700-21e7-11ea-9c8c-70be6f699be0.png">
+
+- 이러한 특성을 추가적인 방법으로 변환하면 성능이 더욱 향상될 수 있음 
+- 로그 조정이 일부 특성에 도움이 될 수 있음/또는 극단값을 잘라내면 척도의 나머지 부분이 더 유용해질 수 있음 
+```python
+   def log_normalize(series):
+     return series.apply(lambda x:math.log(x+1.0))
+   
+   def clip(series, clip_to_min, clip_to_max):
+     return series.apply(lambda x:(
+       min(max(x, clip_to_min), clip_to_max)))
+   
+   def z_score_normalize(series):
+     mean = series.mean()
+     std_dv = series.std()
+     return series.apply(lambda x:(x - mean) / std_dv)
+   
+   def binary_threshold(series, threshold):
+     return series.apply(lambda x:(1 if x > threshold else 0))
+```
+- 이러한 함수를 사용 직접 추가하여 작업 수행
+
+- households, median_income, total_bedrooms는 모두 로그 공간에서 정규분포를 나타냄
+- latitude, longitude, housing_median_age는 이전과 같이 선형 조정을 사용하는 방법이 더 좋을 수 있음 
+- population, totalRooms, rooms_per_person에는 극단적인 이상점 존재,이런 점은 지나치게 극단적이므로 삭제하기로 함
+```python
+   def normalize(examples_dataframe):
+     """Returns a version of the input 'DataFrame' that has all its features normalized."""
+     processed_features = pd.DataFrame()
+     
+     processed_features["households"] = log_normalized(examples_dataframe["households"])
+     processed_features["median_income"] = log_normalized(examples_dataframe["median_income"])
+     processed_features["total_bedrooms"] = log_normalized(examples_dataframe["total_bedrooms"])
+     
+     processed_features["latitude"] = linear_scale(examples_dataframe["latitude"])
+     processed_features["longitude"] = linear_scale(examples_dataframe["longitude"])
+     processed_features["housing_median_age"] = linear_scale(examples_dataframe["housing_median_age"])
+     
+     processed_features["population"] = linear_scale(clip(examples_dataframe["population"], 0, 5000))
+     processed_features["rooms_per_person"] = linear_scale(clip(examples_dataframe["rooms_per_person"], 0 ,5))
+     processed_features["total_rooms"] = linear_scale(clip(examples_dataframe["total_rooms"], 0 , 10000))
+     
+     return processed_features
+   
+   normalized_dataframe = normalize(preprocess_features(califronia_housing_dataframe))
+   normalized_training_examples = normalized_dataframe.head(12000)
+   normalized_validation_examples = normalized_dataframe.tail(5000)
+   
+   _ = train_nn_regression_model(
+       my_optimizer=tf.train.AdagradOptimizer(learning_rate=0.15),
+       steps=1000,
+       batch_size=50,
+       hidden_units=[10, 10],
+       training_examples=normalized_training_examples,
+       training_targets=training_targets,
+       validation_examples=normalized_validation_examples,
+       validation_targets=validation_targets)
+```
+<img src="https://user-images.githubusercontent.com/32586985/71092170-17962080-21ea-11ea-83e1-b6edf3297e56.png">
+
+
+### 선택 과제:위도 및 경도 특성만 사용
+- 특성으로 위도와 경도만 사용하는 NN 모델을 학습시킴
+- 복잡한 비선형성을 학습할 수 있어야함 
+```python
+   def location_location_location(examples_dataframe):
+     """Returns a version of the input 'DataFrame' that keeps only the latitude and longitude."""
+     processed_features = pd.DataFrame()
+     processed_features["latitude"] = linear_scale(examples_dataframe["latitude"])
+     processed_features["longitude"] = linear_scale(examples_dataframe["longitude"])
+     return processed_features
+     
+   lll_dataframe = location_location_location(preprocess_features(california_housing_dataframe))
+   lll_training_examples = lll_dataframe.head(12000)
+   lll_validation_examples = lll_dataframe.tail(5000)
+   
+   _ = train_nn_regression_model(
+       my_optimizer=tf.train.AdagradOptimizer(learning_rate=0.05),
+       steps=500,
+       batch_size=50,
+       hidden_units=[10, 10, 5, 5, 5],
+       training_examples=lll_training_examples,
+       training_targets=training_targets,
+       validation_examples=lll_validation_examples,
+       validation_targets=validation_targets)
+```
+- 나쁘지 않은 결과 얻음/짧은 거리 내에서 속성 값이 크게 요동하는 경우가 있긴함 
+<img src="https://user-images.githubusercontent.com/32586985/71092732-2204ea00-21eb-11ea-977d-0a48f222857e.png">
+
