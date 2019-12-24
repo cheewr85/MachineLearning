@@ -175,3 +175,344 @@
     <img src="https://user-images.githubusercontent.com/32586985/71356748-77b00c80-25c6-11ea-81a2-e8aa3ef3e5bf.PNG">
     
     
+
+## 프로그래밍 실습
+- 설정 
+```python
+   from __future__ import print_function
+   
+   import collections
+   import io
+   import math
+   
+   import matplotlib.pyplot as plt
+   import numpy as np
+   import pandas as pd
+   %tensorflow_version 1.x
+   import tensorflow as tf
+   from IPython import display
+   from sklearn import metrics
+   
+   tf.logging.set_verbosity(tf.logging.ERROR)
+   train_url = 'https://download.mlcc.google.com/mledu-datasets/sparse-data-embedding/train.tfrecord'
+   train_path = tf.keras.utils.get_file(train_url.split('/')[-1], train_url)
+   test_url = 'https://download.mlcc.google.com/mledu-datasets/sparse-data-embedding/test.tfrecord'
+   test_path = tf.keras.utils.get_file(test_url.split('/')[-1], test_url)
+```
+<img src="https://user-images.githubusercontent.com/32586985/71406939-f9627180-267c-11ea-9e23-19825d4e6e5f.PNG">
+
+- 감정 분석 모델 만들기
+  - 이 데이터로 감정 분석 모델을 학습시켜 리뷰가 전반적으로 긍정적(라벨 1)인지 아니면 부정적(라벨 0)인지를 예측해 보겠음 
+  - 이를 위해 문자열 값인 단어를 어휘,즉 데이터에 나올 것으로 예상되는 각 단어의 목록을 사용하여 특성 벡터로 변환함 
+  - 어휘의 각 단어는 특성 벡터의 좌표에 매핑됨/예의 문자열 값인 단어를 이 특성 벡터로 변환하기 위해
+  - 예 문자열에 어휘 단어가 나오지 않으면 각 좌표의 값에 0을 입력하고 어휘 단어가 나오면 1을 입력하도록 인코딩함 
+  - 어휘에 나오지 않는 단어는 무시됨
+- 입력 파이프라인 구축
+```python
+   def _parse_function(record):
+     """Extracts features and labels.
+     
+     Args:
+       record: File path to a TFRecord file
+     Returns:
+       A 'tuple' '(labels, features)':
+         features: A dict of tensors representing the features
+         labels: A tensor with the corresponding labels.
+     """
+     features = {
+       "terms": tf.VarLenFeature(dtype=tf.string), # terms are strings of varying lengths
+       "labels": tf.FixedLenFeature(shape=[1], dtype=tf.float32) # labels are 0 or 1
+     }
+     
+     parsed_features = tf.parse_single_example(record, features)
+     
+     terms = parsed_features['terms'].values
+     labels = parsed_features['labels']
+     
+     return {'terms':terms}, labels
+```
+  - 함수가 정상적으로 작동하는지 확인하기 위해 학습 데이터에 대한 TFRecordDataset를 생성하고 위 함수를 사용하여 데이터를 특성 및 라벨에 매핑함
+  ```python
+     # Create the Dataset object.
+     ds = tf.data.TFRecordDataset(train_path)
+     # Map features and labels with the parse function.
+     ds = ds.map(_parse_function)
+     
+     ds
+  ```
+  <img src="https://user-images.githubusercontent.com/32586985/71407404-3e3ad800-267e-11ea-880a-322a9fc4bc30.PNG">
+  
+- 다음 셀을 실행하여 학습 데이터 세트에서 첫 예를 확인함 
+```python
+   n = ds.make_one_shot_iterator().get_next()
+   sess = tf.Session()
+   sess.run(n)
+```
+<img src="https://user-images.githubusercontent.com/32586985/71407478-75a98480-267e-11ea-9b1b-1e90f63ed7a5.PNG">
+
+- train() 메소드에 전달할 수 있는 정식 입력 함수를 만듬
+```python
+   # Create an input_fn that parses the tf.Examples from the given files,
+   # and split them into features and targets.
+   def _input_fn(input_filenames, num_epochs=None, shuffle=True):
+   
+     # Same code as above; create a dataset and map features and labels.
+     ds = tf.data.TFRecordDataset(input_filenames)
+     ds = ds.map(_parse_function)
+     
+     if shuffle:
+       ds = ds.shuffle(10000)
+     
+     # Our feature data is variable-length, so we pad and batch
+     # each field of the dataset structure to whatever size is necessary.
+     ds = ds.padded_batch(25, ds.output_shapes)
+     
+     ds = ds.repeat(num_epochs)
+     
+     
+     # Return the next batch of data.
+     features, labels = ds.make_one_shot_iterator().get_next()
+     return features, labels
+```
+
+### 작업1:희소 입력 및 명시적 어휘와 함께 선형 모델 사용
+- 첫 번째 모델로서 50개의 정보 단어를 사용하여 LinearClassifier 모델을 만듬
+- 다음 코드는 단어에 대한 특성 열을 만듬/categorical_column_with_vocabulary_list 함수는 문자열과 특성 벡터 간의 매핑을 포함하는 특성열을 만듬 
+```python
+   # 50 informative terms that compose our model vocabulary.
+   informative_terms = ("bad", "great", "best", "worst", "fun", "beautiful",
+                        "excellent", "poor", "boring", "awful", "terrible",
+                        "definitely", "perfect", "liked", "worse", "waste",
+                        "entertaining", "loved", "unfortunately", "amazing",
+                        "enjoyed", "favorite", "horrible", "brilliant", "highly",
+                        "simple", "annoying", "today", "hilarious", "enjoyable",
+                        "dull", "fantastic", "poorly", "fails", "disappointing",
+                        "disappointment", "not", "him", "her", "good", "time",
+                        "?", ".", "!", "movie", "film", "action", "comedy",
+                        "drama", "family")
+   terms_feature_column = tf.feature_column.categorical_column_with_vocabulary_list(key="terms", vocabulary_list=informative_terms)                       
+```
+- LinearClassifier를 생성하고 학습 세트로 학습시킨 후 평가 세트로 평가함
+```python
+   my_optimizer = tf.train.AdagradOptimizer(learning_rate=0.1)
+   my_optimizer = tf.contrib,estimator.clip_gradients_by_norm(my_optimizer, 5.0)
+   
+   feature_columns = [ terms_feature_column ] 
+   
+   classifier = tf.estimator.LinearClassifier(
+     feature_columns=feature_columns,
+     optimizer=my_optimizer,
+   )
+   
+   classifier.train(
+     input_fn=lambda: _input_fn([train_path]),
+     steps=1000)
+     
+   evaluation_metrics = classifier.evaluate(
+     input_fn=lambda: _input_fn([train_path]),
+     steps=1000)
+   print("Training set metrics:")
+   for m in evaluation_metrics:
+     print(m, evaluation_metrics[m])
+   print("---")
+   
+   evaluation_metrics = classifier.evaluate(
+     input_fn=lambda: _input_fn([test_path]),
+     steps=1000)
+   
+   print("Test set metrics:")
+   for m in evaluation_metrics:
+     print(m, evaluation_metrics[m])
+   print("---")
+```
+<img src="https://user-images.githubusercontent.com/32586985/71408199-b1454e00-2680-11ea-992d-f49b8050dd8d.PNG">
+
+### 작업2:심층신경망(DNN) 모델 사용
+- 작업1에 선형모델 대신 DNN모델을 사용해 보겠음
+```python
+   classifier = tf.estimator.DNNClassifier(
+     feature_columns=[tf.feature_column.indicator_column(terms_feature_column)],
+     hidden_units=[20,20],
+     optimizer=my_optimizer,
+   )
+   
+   try:
+     classifier.train(
+       input_fn=lambda: _input_fn([train_path]),
+       steps=1000)
+     
+     evaluation_metrics = classifier.evaluate(
+       input_fn=lambda: _input_fn([train_path]),
+       steps=1)
+     print("Training set metrics:")
+     for m in evaluation_metrics:
+       print(m, evaluation_metrics[m])
+     print("---")
+     
+     evaluation_metrics = classifier.evaluate(
+       input_fn=lambda: _input_fn([test_path]),
+       steps=1)
+       
+     print("Test set metrics:")
+     for m in evaluation_metrics:
+       print(m, evaluation_metrics[m])
+     print("---")
+   except ValueError as err:
+     print(err)
+```
+<img src="https://user-images.githubusercontent.com/32586985/71408427-890a1f00-2681-11ea-9775-2573f2c05387.PNG">
+
+### 작업3:DNN 모델에 임베딩 사용
+- 임베딩 열을 사용하여 DNN 모델을 구현함/임베딩 열은 희소 데이터를 입력으로 취하고 저차원 밀집 벡터를 출력으로 반환함 
+- 다음과 같은 사양으로 DNNClassifier를 정의함
+  - 각각 20개 유닛을 포함하는 히든 레이어 2개
+  - Adagrad 최적화, 학습률 0.1
+  - gradient_clip_norm을 5.0으로 지정
+```python
+   terms_embedding_column = tf.feature_column.embedding_column(terms_feature_column, dimension=2)
+   feature_column = [ terms_embedding_column ]
+   
+   my_optimizer = tf.train.AdagradOptimizer(learning_rate=0.1)
+   my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
+   
+   classifier = tf.estimator.DNNClassifier(
+     feature_columns=feature_columns,
+     hidden_units=[20,20],
+     optimizer=my_optimizer
+   )
+   
+   classifier.train(
+     input_fn=lambda: _input_fn([train_path]),
+     steps=1000)
+     
+   evaluation_metrics = classifier.evaluate(
+     input_fn=lambda: _input_fn([train_path]),
+     steps=1000)
+   print("Training set metrics:")
+   for m in evaluation_metrics:
+     print(m, evaluation_metrics[m])
+   print("---")
+   
+   evaluation_metrics = classifier.evaluate(
+     input_fn=lambda: _input_fn([test_path])
+     steps=1000)
+     
+   print("Test set metrics:")
+   for m in evaluation_metrics:
+     print(m, evaluation_metrics[m])
+   print("---")  
+```
+<img src="https://user-images.githubusercontent.com/32586985/71409115-c4a5e880-2683-11ea-84ed-2cb23f860d6a.PNG">
+
+### 작업4:임베딩이 실제로 적용되는지 확인 
+- 모델에서 내부적으로 임베딩을 실제로 사용하는지 확인하려는 과정 
+- 모델의 텐서 확인 
+```python
+   classifier.get_variable_names()
+```
+- 밑의 결과를 통해 임베딩 레이어가 있음을 확인할 수 있음/모델의 다른 부분과 함께 동시에 학습됨
+<img src="https://user-images.githubusercontent.com/32586985/71409197-0898ed80-2684-11ea-9cdd-ae1002dae98b.PNG">
+
+- 임베딩 50차원 벡터를 2차원으로 투영하는 행렬임
+```python
+   classifier.get_variable_value('dnn/input_from_feature_columns/input_layer/terms_embedding/embedding_weights').shape
+   
+   # 결과
+   (50, 2)
+```
+
+### 작업5:임베딩 조사
+- 실제 임베딩 공간을 조사하여 각 단어가 결국 어느 위치에 배치되었는지 확인해봄
+  - 1.아래의 코드를 실행하여 작업3에서 학습시킨 임베딩을 확인함
+  ```python
+     import numpy as np
+     import matplotlib.pyplot as plt
+     
+     embedding_matrix = classifier.get_variable_value('dnn/input_from_feature_columns/input_layer/terms_embedding/embedding_weights')
+     
+     for term_index in range(len(informative_terms)):
+       # Create a one-hot encoding for our team.  It has 0s everywhere, except for
+       # a single 1 in the coordinate that corresponds to that term.
+       term_vector = np.zeros(len(informative_terms))
+       term_vector[term_index] = 1
+       # We'll now project that one-hot vector into the embedding space.
+       embedding_xy = np.matmul(term_vector, embedding_matrix)
+       plt.text(embedding_xy[0],
+                embedding_xy[1],
+                informative_terms[term_index])
+       
+     # Do a little setup to make sure the plot displays nicely.
+     plt.rcParams["figure.figsize"] = (15, 15)
+     plt.xlim(1.2 * embedding_matrix.min(), 1.2 * embedding_matrix.max())
+     plt.ylim(1.2 * embedding_matrix.min(), 1.2 * embedding_matrix.max())
+     plt.show()
+  ```
+  <img src="https://user-images.githubusercontent.com/32586985/71409646-b658cc00-2685-11ea-8d03-66aa88987316.PNG">
+  
+  - 위의 작업 3의 코드를 재실행하여 임베딩 시각화를 다시 실행함/이전 실행보다 그래프가 달라짐
+  <img src="https://user-images.githubusercontent.com/32586985/71409820-3ed76c80-2686-11ea-8df8-07e0aa4273fe.PNG">
+  
+  - 작업 3의 코드를 10단계만 사용하여 모델을 다시 학습하여, 임베딩 시각화 실행
+  - 위의 두 작업과는 매우 상이한 그래프가 나옴 
+  <img src="https://user-images.githubusercontent.com/32586985/71409946-abeb0200-2686-11ea-8a9e-acf245b27728.PNG">
+
+### 작업6:모델 성능 개선 시도
+- 초매개변수 변경 또는 Adam등의 다른 옵티마이저 사용, 이 전략으로 향상되는 정확성은 1~2%에 불과할 수 있음
+- informative_terms에 더 많은 단어 추가/이 어휘 파일에서 단어를 더 추출할 수도 있고,categorical_column_with_vocabulary_file 특성 열을 통해 전체 어휘를 사용할 수도 있음 
+```python
+   # Download the vocabulary file.
+   terms_url = 'https://download.mlcc.google.com/mledu-datasets/sparse-data-embedding/terms.txt'
+   terms_path = tf.keras.utils.get_file(terms_url.split('/')[-1], terms_url)
+```
+<img src="https://user-images.githubusercontent.com/32586985/71410123-74308a00-2687-11ea-99c2-28d0653cf8d4.PNG">
+
+```python
+   # Create a feature column from "terms", using a full vocabulary file.
+   informative_terms = None
+   with io.open(terms_path, 'r', encoding='utf8') as f:
+     # Convert it to a set first to remove duplicates.
+     informative_terms = list(set(f.read().split()))
+     
+   terms_feature_column = tf.feature_column.categorical_column_with_vocabulary_list(key="terms",vocabulary_list=informative_terms)
+   
+   terms_embedding_column = tf.feature_column.embedding_column(terms_feature_column, dimension=2)
+   feature_columns = [ terms_embedding_column ] 
+   
+   my_optimizer = tf.train.AdagradOptimizer(learning_rate=0.1)
+   my_optimizer = tf.contrib.estimator.clip_gradient_by_norm(my_optimizer, 5.0)
+   
+   classifier = tf.estimator.DNNClassifier(
+     feature_columns=feature_columns,
+     hidden_units=[10,10],
+     optimizer=my_optimizer
+   )
+   
+   classifier.train(
+     input_fn=lambda: _input_fn([train_path])
+     steps=1000)
+   
+   evaluation_metrics = classifier.evaluate(
+     input_fn=lambda: _input_fn([train_path]),
+     steps=1000)
+   print("Training set metrics:")
+   for m in evaluation_metrics:
+     print(m, evaluation_metrics[m])
+   print("---")
+   
+   evaluation_metrics = classifier.evaluate(
+     input_fn=lambda: _input_fn([test_path]),
+     steps=1000)
+   
+   print("Test set metrics:")
+   for m in evaluation_metrics:
+     print(m, evaluation_metrics[m])
+   print("---")  
+```
+<img src="https://user-images.githubusercontent.com/32586985/71410418-87902500-2688-11ea-8333-82d93d923c8b.PNG">
+
+
+- 임베딩을 사용한 DNN 솔루션이 원래의 선형 모델보다 우수할 수 있지만, 선형 모델도 성능이 그다지 나쁘지 않았으며 학습 속도는 상당히 더 빨라짐
+- 선형 모델의 학습 속도가 더 빠른 이유는 업데이트할 매개변수 또는 역전파할 레이어의 수가 더 적기 때문임
+- 응용 분야에 따라서는 선형 모델의 빠른 속도가 큰 장점이 될 수 있고, 선형 모델도 품질 면에서 충분하고도 남을 수 있음
+- 다른 분야에서는 DNN이 제공하는 추가적인 모델 복잡성과 용량이 더 중요할 수 있음
+- 모델 아키텍처를 정의할 때는 어떠한 모델이 적합한지 판단할 수 있도록 문제를 충분히 탐구해야 함
