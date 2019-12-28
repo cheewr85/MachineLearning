@@ -308,4 +308,36 @@ Deep neural net model defined.
 - 각각의 서브그룹에 대해서 평가를 하지 못한 것이 하나 놓친부분이긴 함
 <img src="https://user-images.githubusercontent.com/32586985/71539099-86a60e80-297a-11ea-8dc0-337ba2f70943.PNG">
   
+### 과제4  
+- Confusion 행렬을 사용하여 공정성 평가하기
+- 모델에 대한 전반적인 성능에 대해서는 평가하지만 얼마나 잘 모델이 서로다른 subgroup에 대해서 작동했는지는 알 수 없음
+- 모델의 공정성을 평가하는데 있어 다른 것들에 대한 특정한 예측 오류라던지 subgroup을 넘은 적합성에 대한 예측 오류등을 결정하는 것이 중요함
+- 이것의 중요한 도구가 confusion matrix임/이를 바탕으로 모델이 얼마나 정확히 예측하는지 혹은 잘못 예측하는지 알 수 있음
+- 우선 라벨에 대해서 두가지 가능한 값으로 binary 표현을 할 것이고 >50k는 positive, <50k는 negative임 
+- 이 라벨은 단순히 값을 판단하는 용도가 아닌 두 가지 가능한 예측을 분류하는 용도로 쓰임 
+- 제대로 된 예측을 한 것은 true로 잘못된 예측을 한 것은 false로 나타냄
+  - true positive:모델이 >50k를 예측하고 true일 경우
+  - true negative:모델이 <50k를 예측하고 true일 경우
+  - false positive:모델이 >50k를 예측하고 false일 경우
+  - false negative:모델이 <50k를 예측하고 false일 경우
+- 아래의 실행은 우리의 이진 confusion 행렬과 평가 metrics에 필요한 것을 계산하는 실행임
+<img src="https://user-images.githubusercontent.com/32586985/71539116-fcaa7580-297a-11ea-87d6-e47f9fbd34ef.PNG">
+
+- 아래의 실행은 이진 confusion matrix를 시각화하는데 필요한 실행
+<img src="https://user-images.githubusercontent.com/32586985/71539117-003dfc80-297b-11ea-8ab9-36564d255219.PNG">
+
+- 이제 필요한 함수는 모두 정의를 하였고 이진 confusion 행렬과 평가 metrics를 deep neural net model을 바탕으로 결과를 냄
+- gender의 subgroup을 선택하여 여성과 남성을 가지고 confusion matrics를 생성하고
+- 각각의 값에 대해서 비교를 하고 확인을 해보자
+- 다른 subgroup에 비해 모델의 오류의 비율이 더 나은 부분을 제시할 만한 부분이 있는지?
+<img src="https://user-images.githubusercontent.com/32586985/71539118-02a05680-297b-11ea-8e1f-78efcf11a870.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71539119-07650a80-297b-11ea-9ad3-bae545be7d37.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71539316-cde1ce80-297d-11ea-80ea-6e70c7ac963f.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71539317-d1755580-297d-11ea-87f9-87941bfecdb6.PNG">
+
+- 모델은 남성의 데이터가 여성의 데이터보다 더 나은 결과를 수행함
+- 이 결과를 바탕으로 subgroup을 통해서 모델의 수행능력을 평가하는것이 중요함을 찾음
+- 좋은 결정을 위해 위의 4가지 특성을 균형있게 하는것이 중요함/예를 들면 낮은 false positive 비율이면 높은 true positive 비율과 같이
+- 혹은 높은 precision을 원하면 낮은 recall인 것
+- 이러한 원하는 tradeoffs를 위해 평가 metrics를 
   
