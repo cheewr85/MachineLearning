@@ -126,4 +126,186 @@
 
 
 ## 프로그래밍 실습
+- 사용할 데이터는 성인 인구의 수입 조사 데이터를 쓸 것임/1994년 인구조사 기반
+- 예측 과제는 매년 5만달러 이상을 버는 사람을 예측하는 것임
+- income_bracket:매년 5만달러 이상 버는 사람
+- 설정
+```python
+   import os
+   import numpy as np
+   import matplotlib.pyplot as plt
+   import pandas as pd
+   import tensorflow as tf
+   import tempfile
+   !pip install seaborn==0.8.1
+   import seaborn as sns
+   import itertools
+   from sklearn.metrics import confusion_matrix
+   from sklearn.metrics import roc_curve, roc_auc_score
+   from sklearn.metrics import precision_recall_curve
+   from google.colab import widgets
+   # For facets
+   from IPython.core.display import display, HTML
+   import base64
+   !pip install facets-overview==1.0.0
+   from facets_overview.feature_statistics_generator import FeatureStatisticsGenerator
+   
+   print('Modules are imported.')
+```
+<img src="https://user-images.githubusercontent.com/32586985/71538407-bf8bb680-296d-11ea-93e3-df73ac8cbe51.PNG">
 
+
+- 데이터 불러오기
+```python
+   COLUMNS = ["age", "workclass", "fnlwgt", "education", "education_num",
+              "marital_status", "occupation", "relationship", "race", "gender",
+              "capital_gain", "capital_loss", "hours_per_week", "native_country",
+              "income_bracket"]
+   
+   train_df = pd.read_csv(
+       "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data",
+       names=COLUMNS,
+       sep=r'\s*,\s*',
+       engine='python',
+       na_calues="?")
+   test_df = pd.read_csv(
+       "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test",
+       names=COLUMNS,
+       sep=r'\s*,\s*',
+       skiprows=[0],
+       engine='python',
+       na_values="?")
+       
+   # Drop rows with missing values
+   train_df = train_df.dropna(how="any", axis=0)
+   test_df = test_df.dropna(how="any", axis=0)
+   
+   print('UCI Adult Census Income dataset loaded.')
+```
+<img src="https://user-images.githubusercontent.com/32586985/71538492-42614100-296f-11ea-88ff-c854ee22b308.PNG">
+
+- 데이터세트 분석
+- 모델을 예측하기 이전에 몇가지 데이터 세트에 대한 확인을 한 뒤 모델을 사용해야한다
+<img src="https://user-images.githubusercontent.com/32586985/71538535-067aab80-2970-11ea-99f4-4180fbe32fb0.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71538530-f236ae80-296f-11ea-84fd-09dc4473b90a.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71538532-fbc01680-296f-11ea-9412-b10356a02498.PNG">
+
+### 과제1
+- 위의 실행한 통계자료와 히스토그램을 바탕으로 Show Raw Data 버튼을 눌러 카테고리 별로 값의 분포를 확인해봐라
+- 아래의 질문에 대한 답변을 해바라
+  - 1.관측한 많은 수들 중 잃어버린 특성 값이 있는가?
+  - 2.다른 특성에 영향을 줄 수 있는 잃어버린 특성 값이 있는가?
+  - 3.예측하지 못한 특성 값이 있는가?
+  - 4.데이터가 한 쪽으로 쏠린 현상을 볼 수 있는가?
+- numeric과 categorical 특성을 봤을 때 별도의 잃어버린 특성이 있진 않았음
+- 데이터를 본다면 hours_per_week 같은 경우 최소값이 1이지만 최대값은 99인 큰 격차가 보임을 알 수 있음
+- capital_gain과 capital_loss 같은 경우 90%이상의 값이 0이고 10% 미만의 경우가 0이 아닌 값인 것을 알 수 있음/그로 인해 이 값에 대해 좀 더 자세히 보고 이 값을 증명하거나 이 특성이 유효한지 확인을 해봐야함
+- gender의 히스토그램을 보게 되면 3분의 2의 해당하는 예시가 남자를 가르키고 있는데 이것은 충분히 데이터가 쏠린 현상으로 볼 수 있기 때문에 성비를 50/50의 가깝게 맞춰야함
+
+### 과제2
+- 데이터 세트를 좀 더 깊게 탐구하기 위해 Facets Dive를 사용할 것임
+- 해당 툴은 데이터 포인터로 나타내는 것을 시각화하여 각각의 특성들이 상호작용하는 것을 볼 수 있음
+<img src="https://user-images.githubusercontent.com/32586985/71538663-0f6c7c80-2972-11ea-98a0-0877bf0cd5bb.PNG">
+
+- 해당 툴을 메뉴를 이용하여 시각화의 변화를 알아볼 예정
+  - 1.X-Axis 메뉴,Color를 education을 고르고 Type 메뉴의 경우 income_bracket을 고른 후 그 둘 사이의 관계를 확인
+    - 이 데이터 세트에서는 높은 학력을 가진 것이 많은 수입을 가지고 있다는 것과 연관되어 있음
+    - 수입이 5만달러 이상일 경우 학력 수준이 높은 것으로 나옴
+  <img src="https://user-images.githubusercontent.com/32586985/71538711-07f9a300-2973-11ea-9f0e-99ad104a7d43.PNG">
+  
+  - 2.X-Axis 메뉴,Color를 marital_status로 고르고 Type 메뉴의 경우 gender를 고른 후 주목할 만한 관찰은 무엇인지 확인
+    - marital-status 카테고리에서 남성과 여성의 비율이 거의 1:1에 가까움/남성과 여성의 비율이 5:1인 married-civ-spouse를 제외하고는
+    - 과제 1에서 알 수 있듯이, 남성의 비율이 많은 이 데이터 세트에서는 결혼한 여성의 비율이 특히 낮다는 것을 추론할 수 있음
+  <img src="https://user-images.githubusercontent.com/32586985/71538732-822a2780-2973-11ea-9419-4ceee4de72bd.PNG">
+  
+### 과제3
+- 공정성에 관하여 문제를 일으킬수 있는 특성에 대하여 알아보자
+- 해당 특성들이 모델의 예측의 어떠한 영향을 주는지 확인
+<img src="https://user-images.githubusercontent.com/32586985/71538867-dcc48300-2975-11ea-89a2-4b028733f458.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71538869-e0f0a080-2975-11ea-8f7e-395ef53e891c.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71538871-e3eb9100-2975-11ea-91b9-56a1026b0e46.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71538873-e6e68180-2975-11ea-9d8b-48a9fcc76b55.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71538875-e9e17200-2975-11ea-8014-780d5db1eb51.PNG">
+
+- TensorFlow Estimators를 사용하여 예측하기
+  - neural network를 통해서 수입을 예측할 것이고, TensorFlow's Estimator API를 통해 DNNClassifier에 접근할 것임
+  - 우선 tensors에 있는 input 함수를 사용할 것
+  ```python
+     def csv_to_pandas_input_fn(data, batch_size=100, num_epochs=1, shuffle=False):
+       return tf.estimator.inputs.pandas_input_fn(
+           x=data.drop('income_bracket', axis=1),
+           y=data['income_bracket'].apply(lambda x: ">50K" in x).astype(int),
+           batch_size=batch_size,
+           num_epochs=num_epochs,
+           shuffle=shuffle,
+           num_threads=1)
+           
+     print('csv_to_pandas_input_fn() defined.')      
+  ```
+  <img src="https://user-images.githubusercontent.com/32586985/71538960-9bcd6e00-2977-11ea-8ce4-90755410517c.PNG">
+  
+- TensorFlow에서의 특성 나타내기
+- 모델의 data maps를 충족시키기 위함
+ <img src="https://user-images.githubusercontent.com/32586985/71538975-d800ce80-2977-11ea-9382-a054942eda7a.PNG">
+ 
+- 과제3을 하는동안 age를 선택했다면 age가 bucketing을 하고 서로 다른 그룹안에서 비슷한 나이끼리 묶는게 수월함
+- 이것은 모델이 나이를 좀 더 일반화하기 좋음/카테고리 특성에 대해 age라는 숫자 특성을 변환하는
+```python
+   age_buckets = tf.feature_column.bucketized_column(
+       age, boundaries=[18, 25, 30, 35, 40, 45, 50, 55, 60, 65])
+```
+- 주요한 서브그룹 역시 고려해야함 
+- 모델의 특성 정의하기
+  - gender를 subgroup으로 고려하고 이것을 별도의 subgroup_variables 리스트로 분리한후 필요로하는 특별한 요소를 추가할 것임
+```python
+   # List of variables, with special handling for gender subgroup.
+   variables = [native_country, education, occupation, workclass,
+                relationship, age_buckets]
+   subgroup_variables = [gender]
+   feature_columns = variables + subgroup_variables
+```
+- Adult 데이터세트에 Deep Neural Net Model 학습시키기
+  - 딥러닝을 사용하여 수입을 예측할 것임
+  - 두 개의 히든 레이어가 있는 간단한 구조로 할 것임
+  - 그 전에 고차원의 카테고리 특성을 낮은 차원의 밀집된 실제 벡터 값으로 전환해야함(임베딩)
+  ```python
+     deep_columns = [
+         tf.feature_column.indicator_column(workclass),
+         tf.feature_column.indicator_column(education),
+         tf.feature_column.indicator_column(age_buckets),
+         tf.feature_column.indicator_column(gender),
+         tf.feature_column.indicator_column(relationship),
+         tf.feature_column.indicator_column(native_country, dimension=8),
+         tf.feature_column.indicator_column(occupation, dimension=8),
+     ]
+     
+     print(deep_columns)
+     print('Deep columns created.') 
+     
+     [IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='workclass', vocabulary_list=('Self-emp-not-inc', 'Private', 'State-gov', 'Federal-gov', 'Local-gov', '?', 'Self-emp-inc', 'Without-pay', 'Never-worked'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='education', vocabulary_list=('Bachelors', 'HS-grad', '11th', 'Masters', '9th', 'Some-college', 'Assoc-acdm', 'Assoc-voc', '7th-8th', 'Doctorate', 'Prof-school', '5th-6th', '10th', '1st-4th', 'Preschool', '12th'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), IndicatorColumn(categorical_column=BucketizedColumn(source_column=NumericColumn(key='age', shape=(1,), default_value=None, dtype=tf.float32, normalizer_fn=None), boundaries=(18, 25, 30, 35, 40, 45, 50, 55, 60, 65))), IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='gender', vocabulary_list=('Female', 'Male'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='relationship', vocabulary_list=('Husband', 'Not-in-family', 'Wife', 'Own-child', 'Unmarried', 'Other-relative'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), EmbeddingColumn(categorical_column=HashedCategoricalColumn(key='native_country', hash_bucket_size=1000, dtype=tf.string), dimension=8, combiner='mean', initializer=<tensorflow.python.ops.init_ops.TruncatedNormal object at 0x7f5381d39630>, ckpt_to_load_from=None, tensor_name_in_ckpt=None, max_norm=None, trainable=True), EmbeddingColumn(categorical_column=HashedCategoricalColumn(key='occupation', hash_bucket_size=1000, dtype=tf.string), dimension=8, combiner='mean', initializer=<tensorflow.python.ops.init_ops.TruncatedNormal object at 0x7f5381d394a8>, ckpt_to_load_from=None, tensor_name_in_ckpt=None, max_norm=None, trainable=True)]
+Deep columns created.
+  ```
+- 데이터 처리과정이 된 이후 deep neural net model을 정의할 수 있음
+- 아래의 예시와 같이 정의함
+<img src="https://user-images.githubusercontent.com/32586985/71539067-fec00480-2979-11ea-99af-974d777de17f.PNG">
+
+- INFO:tensorflow:Using default config.
+INFO:tensorflow:Using config: {'_model_dir': '/tmp/tmpjy2lakmf', '_tf_random_seed': None, '_save_summary_steps': 100, '_save_checkpoints_steps': None, '_save_checkpoints_secs': 600, '_session_config': allow_soft_placement: true
+graph_options {
+  rewrite_options {
+    meta_optimizer_iterations: ONE
+  }
+}
+, '_keep_checkpoint_max': 5, '_keep_checkpoint_every_n_hours': 10000, '_log_step_count_steps': 100, '_train_distribute': None, '_device_fn': None, '_protocol': None, '_eval_distribute': None, '_experimental_distribute': None, '_experimental_max_worker_delay_secs': None, '_session_creation_timeout_secs': 7200, '_service': None, '_cluster_spec': <tensorflow.python.training.server_lib.ClusterSpec object at 0x7f5381d39710>, '_task_type': 'worker', '_task_id': 0, '_global_id_in_cluster': 0, '_master': '', '_evaluation_master': '', '_is_chief': True, '_num_ps_replicas': 0, '_num_worker_replicas': 1}
+Deep neural net model defined.
+
+- 위의 일련의 과정을 거친후 1000번의 과정을 통해 학습시킬 것임
+<img src="https://user-images.githubusercontent.com/32586985/71539086-58283380-297a-11ea-80f4-29942ed47616.PNG">
+<img src="https://user-images.githubusercontent.com/32586985/71539088-5bbbba80-297a-11ea-98c0-63d87d2d0cfc.PNG">
+
+- 그리고 이 모델의 전체적인 성능을 평가함
+- 다른 매개변수를 이용하여 모델을 다시 학습시킬 수 있음
+- 각각의 서브그룹에 대해서 평가를 하지 못한 것이 하나 놓친부분이긴 함
+<img src="https://user-images.githubusercontent.com/32586985/71539099-86a60e80-297a-11ea-8dc0-337ba2f70943.PNG">
+  
+  
