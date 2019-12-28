@@ -283,8 +283,7 @@
      print('Deep columns created.') 
      
      [IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='workclass', vocabulary_list=('Self-emp-not-inc', 'Private', 'State-gov', 'Federal-gov', 'Local-gov', '?', 'Self-emp-inc', 'Without-pay', 'Never-worked'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='education', vocabulary_list=('Bachelors', 'HS-grad', '11th', 'Masters', '9th', 'Some-college', 'Assoc-acdm', 'Assoc-voc', '7th-8th', 'Doctorate', 'Prof-school', '5th-6th', '10th', '1st-4th', 'Preschool', '12th'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), IndicatorColumn(categorical_column=BucketizedColumn(source_column=NumericColumn(key='age', shape=(1,), default_value=None, dtype=tf.float32, normalizer_fn=None), boundaries=(18, 25, 30, 35, 40, 45, 50, 55, 60, 65))), IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='gender', vocabulary_list=('Female', 'Male'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), IndicatorColumn(categorical_column=VocabularyListCategoricalColumn(key='relationship', vocabulary_list=('Husband', 'Not-in-family', 'Wife', 'Own-child', 'Unmarried', 'Other-relative'), dtype=tf.string, default_value=-1, num_oov_buckets=0)), EmbeddingColumn(categorical_column=HashedCategoricalColumn(key='native_country', hash_bucket_size=1000, dtype=tf.string), dimension=8, combiner='mean', initializer=<tensorflow.python.ops.init_ops.TruncatedNormal object at 0x7f5381d39630>, ckpt_to_load_from=None, tensor_name_in_ckpt=None, max_norm=None, trainable=True), EmbeddingColumn(categorical_column=HashedCategoricalColumn(key='occupation', hash_bucket_size=1000, dtype=tf.string), dimension=8, combiner='mean', initializer=<tensorflow.python.ops.init_ops.TruncatedNormal object at 0x7f5381d394a8>, ckpt_to_load_from=None, tensor_name_in_ckpt=None, max_norm=None, trainable=True)]
-     
-Deep columns created.
+  Deep columns created.
   
 - 데이터 처리과정이 된 이후 deep neural net model을 정의할 수 있음
 - 아래의 예시와 같이 정의함
@@ -340,5 +339,5 @@ Deep neural net model defined.
 - 이 결과를 바탕으로 subgroup을 통해서 모델의 수행능력을 평가하는것이 중요함을 찾음
 - 좋은 결정을 위해 위의 4가지 특성을 균형있게 하는것이 중요함/예를 들면 낮은 false positive 비율이면 높은 true positive 비율과 같이
 - 혹은 높은 precision을 원하면 낮은 recall인 것
-- 이러한 원하는 tradeoffs를 위해 평가 metrics를 
+- 이러한 원하는 tradeoffs를 위해 평가 metrics를 선택해야함      
   
