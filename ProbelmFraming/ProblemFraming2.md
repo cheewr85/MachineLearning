@@ -84,4 +84,71 @@
     - 휴리스틱을 연습하는 것이 ML 모델을 확실시 하는데 좋은 신호이고 도움을 줌
     - 가끔은 Non-ML 해답이 ML 해답을 유지하는 것보다 더 쉬울 수 있음 
     
+## 문제점 고안
+- ML 문제의 framing을 하는 접근법을 제안함
+  - 1.Articulate Your Problem
+    - classification과 regression의 몇몇의 서브타입이 있는데 이에 상응하는 플로우차트를 사용하여 어떤 서브타입을 쓸 지 결정하라
+    - 플로우차트는 ML 문제에 대해서 올바른 언어를 사용하는지 등을 모으는데 도움이 될 것임
+    - 문제에 관하여 Classification이나 regression을 통해 플로우차트를 사용하라
+    <img src="https://user-images.githubusercontent.com/32586985/72989281-4c247a00-3e31-11ea-8a66-f06aa4220888.PNG">
+    
+    - 이러한 문제들 중 가장 최선의 frame은
+      - Binary classification
+      - Unidimensional regression
+      - Multi-class single-label classification
+      - Multi-class multi-label classification
+      - Multidimensional regression
+      - Clustering (unsupervised)
+      - Other (translation, parsing, bounding box id, etc.)
+    - 문제를 framing한 후 모델이 어떤 것을 예측하는지 알 수 있을 것임
+    - 이러한 요소들을 종합하여 결과를 내어 문제의 상태를 판단하여라 
+    <img src="https://user-images.githubusercontent.com/32586985/72989523-c1904a80-3e31-11ea-8396-75f96d917e1d.PNG">
+    
+  - 2.Start Simple
+    - 먼저 모델링의 일을 단순화하여라 / binary classification이나 unidimensional regression 문제로 접근해보아라
+    - 그러면 모델이 가능한 단순하게 사용할 수 있고 단순한 모델일수록 실행하기 쉽고 이해하기 쉽다
+    - 제대로 된 full ML 파이프라인이 있다면 간단한 모델로써 이용할 수 있을 것임
+    <img src="https://user-images.githubusercontent.com/32586985/72989807-54c98000-3e32-11ea-817d-d4cac3805175.PNG">
+    
+    - 단순한 모델은 좋은 기반을 제공함 / 단순한 모델은 아무리 복잡한 문제라도 해결하는데 도움을 줌 / 모델이 복잡할수록 훈련시키기 어렵고 느리며 이해하기도 더욱 어렵다 그러므로 단순함을 유지하는 것이 좋음
+    <img src="https://user-images.githubusercontent.com/32586985/72989963-a5d97400-3e32-11ea-9de5-f95b7ae3c712.PNG">
+    
+    - ML은 처음 시작때 많은 결과치를 얻고 처음 데이터가 큰 역할을 함 / 가장 큰 수확은 시작에서 나오고 잘 테스트된 방법을 고르는 것이 과정을 쉽게하게끔 할 수 있는 좋은 사안임
+    
+  - 3.Identify Your Data Sources
+    - 라벨에 대해서 다음의 질문을 고려해봐야함
+      - How much labeled data do you have?
+      - What is the source of your label?
+      - Is your label closely connected to the decision you will be making?
+    <img src="https://user-images.githubusercontent.com/32586985/72990241-2a2bf700-3e33-11ea-82e2-2b620626db3d.PNG">
+  
+  - 4.Design your Data for the Model
+    - ML 시스템을 예측(input->output) 하기 위한 데이터를 규정하라
+    <img src="https://user-images.githubusercontent.com/32586985/72990458-88f17080-3e33-11ea-9059-5649ce6b23d2.PNG">
+    
+    - 각 열은 하나의 예측을 위한 데이터로 구성되어 있음 / 예측을 할 수 있는 범위에서 사용가능한 정보만을 내포하고 있음
+    - 각각의 input은 스칼라 혹은 1차원 정수,소수,바이트로 되어있음
+    - 만일 input이 스칼라나 1차원 리스트가 아니면 데이터의 잘 표현된 것이 무엇인지 고려해야함
+    - 예시
+    <img src="https://user-images.githubusercontent.com/32586985/72990695-f56c6f80-3e33-11ea-8b92-0943362f5a2b.PNG">
+    
+  - 5.Determine Where Data Comes From
+    - 각각의 열을 구성하기 위해 데이터 파이프라인 만들어지는데 얼마나 많은 일을 하였는지 접근하여라
+    - 학습 목적을 위해 예시 결과가 언제 사용되었는지 / 만약 예시 결과를 얻기 힘들다면 결과를 다시 확인하여보고 모델을 위해 다른 결과를 사용했는지 확인해 보아라
+    - 사용한 형태에 대해서 예측하는 시점에 input이 사용가능함을 알고 예측 시점에 맞춰 특정 특성을 포함하거나 제외하는 것은 어려울 것임
+    <img src="https://user-images.githubusercontent.com/32586985/72991282-11244580-3e35-11ea-97b6-604269ba0c52.PNG">
+    
+  - 6.Determine Easily Obtained Inputs
+    - 1~3개의 input을 쉽게 골라 포함하면 유의미한 결과가 나올것이라 믿을것임
+    - 어떠한 input이 휴리스틱 방식을 이용하는 것보다 유용한가?
+    - input을 준비하기 전 데이터 파이프라인을 개발하는 cost와 input을 통해 모델에 예상되는 이점은 무엇인지 고려해보아라
+    - 간단한 파이프라인에 단일 시스템을 내포한 input에 집중하고 시작은 만들 수 있는 최소한의 인프라로 시작하라
+  
+  - 7.Ability to Learn
+    - ML모델이 학습할 수 있는가? / 학습에 어려움을 유발하는 문제에 관한 측면으로 예시를 보아라
+    <img src="https://user-images.githubusercontent.com/32586985/72991706-d078fc00-3e35-11ea-8ec3-753afa99ef4e.PNG">
+    
+  - 8.Think About Potential Bias
+    - 많은 데이터세트는 어떠한 측면으로든 biased함 / 이러한 biases는 학습과 예측을 만드는 것에 영향을 줄 수 있음
+    <img src="https://user-images.githubusercontent.com/32586985/72991805-00c09a80-3e36-11ea-9018-82598ed5995c.PNG">
     
