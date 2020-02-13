@@ -56,3 +56,73 @@
   - 학습하는 동안 serving을 하는데 이용가능한 특징을 사용하고 serving traffic이 나타나는 training set에 대해서 명확히하라
   - 예측하려는만큼 학습시켜라! / 즉 training task가 prediction task에 잘 맞을수록 더욱 더 ML 시스템이 잘 구현될 것임
 
+- 로그 결합
+  - training set를 모을 때 가끔씩 데이터의 다양한 소스를 모음
+
+- Types of Logs
+  - 다음에 해당하는 input data를 사용할 것임
+    - transactional logs
+    - attribute data
+    - aggregate statistics
+  
+  - Transactional logs 
+    - 특정한 event를 기록함 / 쿼리를 만드는 ip 주소를 기록하던지, 쿼리가 만들어질때 생성된 데이터와 시간을 만듬
+    - Transactional events는 specific event와 같음
+  - Attribute data
+    - 정보의 특정 상황을 포함함 / 예를 들면 user demographics, search history at time of query
+    - Attribute data는 정확한 시간에 event나 사건을 집중하지 않지만, 예측을 하는데 있어서 여전히 유용함
+    - attribute data는 데이터 타입의 일종임
+    - Attribute data와 transactional logs는 서로 연관되어 있고, 몇몇의 transactional logs를 조합함으로써 attribute data의 종류를 만들 수 있음
+    - 이러한 상황에서 유저를 위한 single attribute를 만들기 위해 많은 transactional logs를 볼 수 있음
+  - Aggregate statistics
+    - attribute를 다양한 transactional logs를 통해서 만들 수 있음 / 예를 들어 유저 쿼리의 빈도, 특정 광고의 평균 클릭률
+
+- Joining Log Sources
+  - 각각의 로그 타입은 각기 다른 location에 있음
+  - 머신러닝 모델을 위해서 데이터를 모을 때 데이터 세트를 만들기 위한 서로 다른 소스를 한꺼번에 모아야함
+  - 예시 / transaction timestamp를 사용해서 쿼리의 어느 순간의 기록 이력을 선택하는것
+  - attribute data를 보는데 있어서 event timestamp를 이용하는 것은 매우 중요함
+
+- Prediction Data Sources - Online vs. Offline
+  - online과 offline을 고르는 것은 시스템이 data를 모으는데 영향을 줌
+  - Online
+    - Latency가 주요 쟁점이고, 시스템이 input을 빠르게 생산해내야함
+  - Offline
+    - 계산하는데는 제한이 없을 것이지만, training data를 생산하는데 복잡하게 구동됨 
+
+- 라벨 소스
+
+- Direct vs. Derived Labels
+  - 머신러닝은 label이 잘 정의되어 있을 수록 쉬워짐 / best label은 내가 예측하기 원하는 것에 대한 direct한 label임
+  - 예를 들어 Taylor Swift팬인 유저를 예측하기 위해서 direct label은 User is a Taylor Swift fan
+  - 가장 간단한 방법은 유튜브에서 Taylor Swift를 보는 유저를 찾는 것임
+  - 유튜브로 Taylor Swift를 시청한 유저는 derived label이라고 할 수 있음 / 왜냐하면 예측하고자 하는 것을 directly하게 측정하지 않았기 때문임
+  - derived label이 과연 믿을만한 지표일 것인가? / 모델은 derived label과 추구하고자 하는 예측에 사이에서 좋은 연결고리를 가지고 있을 것임 
+
+- Label Sources
+  - 모델의 결과물은 Event이거나 Attribute 둘 중 하나임
+  - 이러한 결과는 두 개의 type의 label을 나타낼 수 있음
+    - Direct label for Events / 예시:유저가 가장 많이 클릭한 연구 결과를 보았는가?
+    - Direct label for Attributes / 예시:광고주가 다음주에 X달러 이상 소비할 것인가?
+
+- Direct Labels for Events
+  - events에서 direct labels은 대체로 직관적임 / event동안 라벨을 사용할 때 유저의 행동에 대해서 log를 할 수 있기 때문임
+  - events를 labeling할 때 다음과 같은 질문을 생각하라
+    - logs를 어떻게 설계하였는가?
+    - logs에서 고려해야할 event는 무엇인가?
+  - 예를들어 시스템 로그는 유저가 search result에 클릭한 것인가 유저가 search를 만든것인가?
+  - 클릭 로그가 있다면 클릭이 없다면 이상적인 결과에 대해서 볼 수 없다는 것을 깨달을 것임
+  - event를 원하게끔 하기위해선 log가 필요함 / 그래서 유저가 본 top search result에 대한 모든 사례를 봐야함
+
+- Direct Labels for Attributes
+  - 라벨이 만약 광고주가 다음주에 X달러 이상 소비할 것인가?라면
+  - 일반적으로 이전에 데이터를 사용하여 그 다음날 무슨일이 일어날지 예측할 것임
+  - 아래의 예시를 참고하자면
+  <img src="https://user-images.githubusercontent.com/32586985/74444175-ce93dd00-4eb7-11ea-9cfa-596cd27b6234.png">
+  
+  - seasonality하고 cyclical한 효과를 기억하라 / 예를 들어 광고주는 일주 이상의 시간을 쓸 것임
+  - 이러한 이유로 14일정도의 예시 자료를 쓰거나 모델이 yearly effect하게 배울 수 있는 특성으로써 데이터를 사용할 것임
+  - event data를 고르는데 있어서 cyclical이나 seasonal effects를 피하거나 이러한 효과들을 염두해 두어라
+
+- Direct Labels Need Logs of Past Behavior 
+  - 
