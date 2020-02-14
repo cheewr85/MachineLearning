@@ -153,4 +153,17 @@
 
 ### 샘플링 및 분할
 - 샘플링
-  - 
+  - 데이터를 충분히 모으기도 어렵지만 가끔은 데이터가 너무 많아서 학습 예제를 선별해야할 때가 있음
+  - 선별하는 작업에 있어서는 순전히 문제에 달려있음 / 우리가 무엇을 예측하고 싶은지?, 어떠한 features를 원하는지?
+  - 이전 쿼리의 feature를 사용하기 위해, session level에서 sample이 필요로함 / sessions은 쿼리의 결과를 포함하기 때문에
+  - 이전의 user behavior에 해당하는 feature를 사용하기 위해서 user level의 샘플이 필요함
+
+- Filtering for PII(Personally Identifiable Information)
+  - 만약 데이터가 PII를 포함한다면, 데이터를 filter하는게 필요함 / 이 방식은 infrequent features를 제거하는 걸 필요로함
+  - 이러한 filtering은 어느정도의 손실이 일어날 수 있고 차이가 있을 수 있음
+  - 하지만 이런 filtering은 유용함, infrequent features를 학습하는 것은 어렵기 때문에 
+  - 데이터 세트가 head 쿼리로부터 편향될 수 있다는 점도 인지하는 것이 중요함
+  - serving time으로 인해 예시를 좋지 않게 serving할 수 있기 때문에 이로 인해 training data로부터 예시가 많이 filter 될 수 있음
+  - 비록 이러한 skew는 피할 수 없지만, 이러한 분석을 할 때 알아두고 있어야함
+
+
