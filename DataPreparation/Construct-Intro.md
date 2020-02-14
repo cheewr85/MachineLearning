@@ -166,4 +166,49 @@
   - serving time으로 인해 예시를 좋지 않게 serving할 수 있기 때문에 이로 인해 training data로부터 예시가 많이 filter 될 수 있음
   - 비록 이러한 skew는 피할 수 없지만, 이러한 분석을 할 때 알아두고 있어야함
 
+- 불균형 데이터
+  - class의 부분이 차이가 나는 classification 데이터세트를 불균형이라고 함
+  - class는 majority classes라고 불리는 데이터 세트의 큰 부분이 있고 이것은 minority class라고 하는 작은 부분을 만듬
 
+- imbalanced는 무엇으로 측정하는가? / mild ~ extreme의 정도의 범위가 있음
+<img src="https://user-images.githubusercontent.com/32586985/74534662-90f68900-4f77-11ea-9d2e-089bf390d43e.PNG">
+
+  
+  - 불균형 데이터 세트를 classificartion 문제로 다룰 때 특별한 샘플링 기법을 적용해야함
+  <img src="https://user-images.githubusercontent.com/32586985/74534761-cbf8bc80-4f77-11ea-8686-673f98eb82a9.PNG">
+  
+  - true distribution에서는 0.5%정도는 positive가 나와야함
+  - 이 그래프가 문제가 되는 이유는 몇몇의 positive는 negative와 연관되어 있고 학습모델은 대부분을 negative 예시에 사용하고 충분한 positive 예시를 학습하지 않음
+  - 만약 불균형 데이터 세트를 다룬다면 맨 먼저, true distribution을 학습하여라
+  - 모델이 잘 구동되고 학습된다면 제대로 된 것이지만 그렇지 않다면 downsampling이나 upweighting technique를 사용해야함
+
+- Downsampling and Upweighting
+  - 불균형 데이터를 효과적으로 다루는 방법은 downsample과 upweight가 있음
+  - Downsampling
+    - 불균형한 majority class 예시에서의 low subset을 학습하는 것을 의미함
+  - Upweighting
+    - downsample한 요소와 같은 downsampled class를 가중치를 부여하여 예시에 추가하는 것을 의미함
+
+  - Step1:Downsample the majority class
+    - fraud한 데이터 세트의 예시를 다시 고려해봄, negatives를 1/10로 가져감으로써 20정도의 factor로 downsample할 수 있음
+    - 이렇게 된다면 모델을 학습하기 더 수월하게 데이터의 10%정도가 positive하게 됨
+    <img src="https://user-images.githubusercontent.com/32586985/74535513-4fff7400-4f79-11ea-88fa-2b7ceac76da4.PNG">
+  
+  - Step2:Upweight the downsampled class
+    - 마지막으로 downsampled class를 가중치를 부여하여 예시에 추가함
+    <img src="https://user-images.githubusercontent.com/32586985/74535591-76bdaa80-4f79-11ea-95f5-d16c4f286d2e.PNG">
+    
+  - weight라는 개념은 학습하는동안 개별의 예시를 더욱 의미있게 측정할 수 있음을 의미함
+  - 다음 공식과 같음 / {example weight} = {original example weight} x {downsampling factor}
+  
+- Why Downsample and Upweight?
+  - downsampling한 후에 가중치를 예시에 부여하고 추가하는 것이 생소할 수 있지만, 모델의 minority class를 통해서 모델을 향상시킬 수 있음
+  - 왜 majority를 upweight하는가? / 다음과 같은 결론이 나옴
+  - Faster convergence 
+    - 학습하는동안 minority class를 더 접한다면 모델이 converge를 빠르게 하는데 도움이 됨 
+  - Disk space
+    - majority class를 큰 weight으로 몇 몇의 예시에 적용함으로써 disk space를 덜 사용함 
+    - 이러한 절약은 minority class를 위해 더 많은 disk space를 사용할 수 있음 
+    - 이러한 class를 통해서 우리는 더 넓은 범위의 예시와 더 큰 수를 구할 수 있음
+  - Calibration 
+    - Upweighting은 확실하게 모델을 교정할 수 있음 / 결과값은 여전히 probabilities하게 해석될 수 있음 
