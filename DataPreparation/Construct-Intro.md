@@ -125,4 +125,32 @@
   - event data를 고르는데 있어서 cyclical이나 seasonal effects를 피하거나 이러한 효과들을 염두해 두어라
 
 - Direct Labels Need Logs of Past Behavior 
+  - 이전의 케이스에서 true result에 대한 데이터가 필요함을 인지함
+  - 광고주가 얼마나 돈을 쓰는지, 어떠한 유저가 Taylor Swift 비디오를 시청하는지에 대해서 필요함
+  - supervised machine learning을 이용하기 위한 historical data가 필요함
+  - ML은 과거의 일어난 사례들을 통해서 예측을 만듬 / 만일 과거의 log가 없다면 그것을 얻어야함
+
+- What if You Don't Have Data to Log?
+  - 만약 아직 product가 존재하지 않는다면, 어떠한 log를 위한 데이터도 필요없음
+  - 이러한 경우, 다음의 절차를 생각해야함
+    - 첫 시작시 heuristic을 사용하고, logged data를 바탕으로 시스템을 학습시킴
+    - 유사한 문제에 대한 log를 사용해서 시스템을 bootstrap하여라
+    - 문제를 마무리하며 사람이 데이터를 생산함
+
+- Why Use Human Labeled Data?
+  - Human-labeled data에 장점과 단점이 있음
+  - Pros
+    - 사람이 하는 것은 좀 더 광범위한 부분의 문제를 수행할 수 있음
+    - 데이터는 문제의 정의하는데 있어서 명확히 할 수 있게끔 함
+  - Cons
+    - 특정 domain에서 데이터가 expensive함
+    - 좋은 데이터는 대체로 여러번의 반복을 요구함
+
+- Improving Quality
+  - 항상 사람이 시행한 일에 대해서 확인하라
+  - 데이터를 직접 보는것은 어떠한 데이터든지 간에 좋은 훈련이 됨 
+
+
+### 샘플링 및 분할
+- 샘플링
   - 
