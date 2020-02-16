@@ -257,4 +257,27 @@
 - 임의 선택
 
 - Practical Considerations 
-  - 
+  - 재사용 가능한 data generation pipeline을 만들어라 / model의 품질의 어떻게 영향을 주는지 보이는 feature를 추가하여라
+  - 동등한 실험에서 데이터세트는 새로운 feature를 제외하고는 동일할 것임
+  - 만일 data generation이 reproducible하게 구동하지 않는다면 이 데이터 세트를 만들 수 없을 것임
+  - 결과적으로 data generation에서의 어떠한 randomization도 아래의 사항을 확실시 해야함
+  - Seed your random number generators (RNGs)
+    - 데이터 세트를 recreating하면서 매번 구동을 할 때 RNG가 같은 값으로 같은 순서로 나오게끔 확실하게 Seeding하여라
+  - Use invariant hash keys
+    - Hashing은 split하거나 sample data에서 가장 일반적인 방법임
+    - 각각의 예시를 hash할 수 있고 예시를 split하는데 결정할 수 있은 resulting integer을 사용할 수 있음
+    - input에서의 hash function은 data generation program을 매번 구동할 때마다 바뀌지 않음
+    - hash를 원하는데 recreate하길 바란다면 hash에서 현재의 시간이나 random number을 쓰면 안됨
+  - 이와 같은 접근법은 sampling이나 데이터를 splitting할 때 둘 다 적용됨
+
+- Considerations for Hashing
+  - Search queries를 모으거나 queries를 포함하거나 배제하는데 hashing을 사용한다고 생각해보면
+  - hash key를 오직 query에만 사용한다면, 며칠의 걸친 데이터가 query를 항상 포함하거나 항상 배제할 것임
+  - query를 always including하거나 always excluding하는것은 좋지 않음 / 왜냐하면
+    - training set에서의 query의 set가 다양성이 적을 것임
+    - evaluation sets가 상대적으로 어려워질 것임, trainin data를 overlap하지 않기 때문에
+    - 실제로는 serving time에서 training data에서 몇 번의 live traffic이 보일 것이고 evaluation이 이를 반영할 것임
+  - 그러므로 만일 하게 된다면 query+date로 hash를 하게 된다면 매번 different hashing이 나타날 것임
+  <img src="https://user-images.githubusercontent.com/32586985/74597936-4a09b000-50ab-11ea-9191-73040cf168c9.PNG">
+  
+  
