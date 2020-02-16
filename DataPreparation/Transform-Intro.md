@@ -73,7 +73,7 @@
   <img src="https://user-images.githubusercontent.com/32586985/74599290-c065dc80-50c2-11ea-9fce-5708c67fc74b.png">
   
   - Scaling to a range
-    - scaling은 자연수의 범위(예.100~900)에서의 floating-point feature value를 standard한 범위(보통 0,1 / 가끔씩 -1~+1)로 변환하는 것을 의미함
+    - scaling은 자연수의 범위(예.100-900)에서의 floating-point feature value를 standard한 범위(보통 0,1 / 가끔씩 -1 - +1)로 변환하는 것을 의미함
     - 아래의 간단한 공식을 따를수도 있음
     <img src="https://user-images.githubusercontent.com/32586985/74599335-61ed2e00-50c3-11ea-93dd-748069bee128.png">
     
