@@ -27,4 +27,38 @@
     - skew는 online serving할 때 매우 위험함 / offline serving에서는 training data를 만드는데 코드를 재사용할 수 있음
     - online serving에서는 코드가 데이터세트를 만들고, 코드가 live traffic을 다루는데 어렵고 이러한것으로 쉽게 skew가 나타날 수 있음
   - Transforming within the model
-    - 
+    - 이 방법은 transformation이 model 코드의 일부분이 됨 / 모델은 untransformed data를 input으로 받을 것이고 모델안에서 transform이 일어날 것임
+    - Pros
+      - 반복이 쉬워짐 / transformation을 바꿔도 같은 데이터 파일을 쓸 수 있음
+      - 학습과 예측시간에 대해서 같은 transformation을 보장받음
+    - Cons
+      - Expensive transform이 model의 latency를 일으킴
+      - transformations are per batch.
+    - transforming per batch에 대해서 여러가지 고려사항이 존재함
+    - feature를 평균적인 값으로 normalize하길 원하는 즉, 만약 feature 값을 mean 0나 standard deviation 1으로 가지는 feature value로 변화하길 원한다고 하면
+    - 모델을 transforming할 때, 이러한 normalization은 오직 하나의 데이터 batch에만 적용되고 모든 데이터세트에는 그러지 못할 것임
+    - batch안에 평균값을 normalize하거나 평균을 미리 계산하거나 모델에서의 constant를 수정할 수 있음
+  - Explore, Clean, and Visualize Your Data
+    - transformation하기 전 데이터에 대해서 탐색하고 확인하기 위해서 데이터 세트를 구축하고 모으는데 있어서 몇가지 따라야할 사항이 있음
+      - Examine several rows of data
+      - Check basic statistics
+      - Fix missing numerical entries 
+    - data를 자주 visualize하여라
+    - 데이터가 가장 기본적인 통계치로 보일 수 있고 graph화 할 수 있다
+    - analysis를 제대로 하기 전에 data를 graphically하게 보고 scatter plots이나 histograms를 통해서 확인하라
+    - graphs를 보는 것은 pipeline의 시작일 뿐아니라 transformation까지도 통함
+    - 시각화는 내가 만든 가정을 주기적으로 확인하는데 도움이 되고 큰 변화에 대해서는 눈에 보일 것임
+    
+### 숫자 데이터 변환 
+  - numeric data를 transformation하는 두 가지 방식을 적용할 수 있음
+  - Normalizing
+    - numeric data를 다른 numeric data와 같은 scale로 transforming함
+  - Bucketing 
+    - numeric data를 categorical data로 transforming하는 것임
+
+- Why Normalize Numeric Fatures?
+  - Normalization은 같은 feature안에 서로 다른 value를 가지고 있을 경우 매우 필요함 
+  - Normalization이 없다면, 학습은 NaN으로 날라가 버릴 것이고 gradient update는 매우 커질 것임
+  - gradient descent를 bounce를 일으키거나 convergence를 느리게 만드는 것을 일으키는 광범위하게 서로 다른 범위에서의 다른 두 가지 features를 가지고 있다면 
+  - Adagrad나 Adam같은 Optimizers은 이러한 문제를 일으키는 것을 각 feature를 각각의 효율적인 learning rate를 만듬으로써 막을 것임
+  - 하지만 Optimizers은 single feature에서의 광범위한 범위의 값을 저장해줄 순 없으므로 이러한 경우에 반드시 normalize해야함
