@@ -64,7 +64,7 @@
   - Adagrad나 Adam같은 Optimizers은 이러한 문제를 일으키는 것을 각 feature를 각각의 효율적인 learning rate를 만듬으로써 막을 것임
   - 하지만 Optimizers은 single feature에서의 광범위한 범위의 값을 저장해줄 순 없으므로 이러한 경우에 반드시 normalize해야함
 
-- Normalization
+- 정규화
   - normalization의 목표는 features를 비슷한 scale로 transform하는데에 있음 / 이것은 모델에서 수행능력과 training의 안정성을 향상시킴
 
 - Normalization Techniques at a Glance
@@ -114,11 +114,83 @@
   - Summary 
     <img src="https://user-images.githubusercontent.com/32586985/74599632-797ae580-50c8-11ea-9780-81f7c62b1db2.png">
     
-- Bucketing
+- 버케팅
   - latitude 예시를 이용하여보면, latitude를 각각의 bucket에서의 housing value에 대해 서로 다른 학습을 할 수 있는 bucket으로 latitude를 나눌 수 있음
   - 이러한 numeric features를 set의 임계값을 이용하여 categorical features로 변환하는 것을 bucketing이라고 부름(binning이라고함)
   - bucketing example에서 boundaries는 동일한 space를 차지함
   <img src="https://user-images.githubusercontent.com/32586985/74599822-bac0c480-50cb-11ea-8489-e2adfb686cfa.png">
   
 - Quantile Bucketing
-  - 아래의 예시에 
+  - 아래의 예시처럼 bucket이 추가된 것에 대해서 해당 bucket은 불필요하게 쓰이는 것으로 보임
+  <img src="https://user-images.githubusercontent.com/32586985/74605211-54f32d80-5109-11ea-85aa-ea7994c26fec.png">
+  
+  - 문제는 매우 동일하게 나뉘어진 buckets이 이러한 distribution을 잘 나누지 못함
+  - 해결책은 bucket을 만들때 같은 수의 points를 만드는 것임
+  - 이러한 것을 quantile bucketing이라고 불리는데, 해당 예시에서처럼 같은 수를 얻기 위해서 몇몇의 buckets은 좁아지고 특정 buckets은 넓어지기도 함
+  <img src="https://user-images.githubusercontent.com/32586985/74605250-c29f5980-5109-11ea-8aab-50da16ae00b3.png">
+  
+- Bucketing Summary
+  - numerical features를 bucketize를 할 때 어떻게 boundaries를 setting 하는지 명확히 해야하고 어떠한 type의 bucketing을 적용할 것인지 명확히 해야함
+  - Buckets with equally spaced boundaries 
+    - boundaries를 같은 수준의 범위로써 압축하거나 수정함
+    - 몇몇 buckets은 많은 points를 포함하거나 오히려 거의 없거나 아예 없을수도 있음
+  - Buckets with quantile boundaries
+    - 각각의 bucket은 같은 수의 포인트를 가지고 있음
+    - boundaries는 fixed되지 않거나 값의 정도가 wide혹은 narrow하게 될 수 있음
+
+- 범주형 데이터 변환
+  - 몇몇 features는 ordered된 관계를 가지지 않은 discrete values일 수 있음
+  - 이러한 features는 categorical이라고 알려져 있고 이러한 값들은 category라고 부름
+  - 이러한 값들을 strings이나 even number로 나타낼 수 있지만 이러한 숫자들을 비교하거나 특정 부분에서 뺼 순 없음 
+  - numerical data를 대신해서 categorical data로써 integer value를 포함하는 것이 나타나는 features 볼 수 있음
+  - 예를 들면 postal code가 integers로써 값을 표현하는 것
+  - 이러한 코드를 만약 numerical한 feature로 나타낸다면 서로 다른 postal code사이에 numeric한 관계를 찾으려고 모델은 작동할 것임
+  - postal codes가 categorical data로써 나타난다면 모델이 각각의 postal code로부터 분리된 signal을 찾을 수 있음
+  - 만약 데이터 필드의 categories가 작다면, the day of the week나 palette의 색깔과 같이 작다면, 각각의 category의 unique한 feature를 만들 수 있음
+  <img src="https://user-images.githubusercontent.com/32586985/74605461-af8d8900-510b-11ea-86d6-e84c48057836.png">
+  
+  - 모델은 각각의 색에 서로 다른 가중치를 학습시킬 수 있음 / 예를 들면 모델은 red cars를 green cars보다 가중치가 더 부여되게끔 할 수 있음
+  - features은 indexed 될 수 있음 / 이러한 mapping을 vocabulary라고 함
+  <img src="https://user-images.githubusercontent.com/32586985/74605513-114df300-510c-11ea-9e29-c0a1d1770150.png">
+  
+- Vocabulary
+  - vocabulary에서는 각각의 value가 unique한 feature를 나타냄
+  <img src="https://user-images.githubusercontent.com/32586985/74605536-422e2800-510c-11ea-87a3-7a6415bf4829.png">
+  
+  - 모델은 string에 해당하는 index를 보고 그에 맞는 slot에 1.0이라는 feature vector를 할당하고 다른 slot에는 0.0이라는 featuer vector를 할당함
+  <img src="https://user-images.githubusercontent.com/32586985/74605552-8de0d180-510c-11ea-81e9-7c37fce248ca.png">
+  
+  - sparse representation이라는 것을 인지해야함
+    - days of the week를 예를 들어 Friday의 feature vector를 [0,0,0,0,1,0,0]이라고 나타내면 대부분의 ML system은 이 vector가 memory에서 sparse representation으로 나타낸다고 실행할 것임
+    - 일반적인 representation에서는 value가 비어있지 않는 list를 만드는데 예를 들면 1.0 value가 [4]의 index에 있는것과 같음
+    - 이것은 상대적으로 많은 0들을 저장하는데 메모리를 사용하는것에 조금은 줄일 수 있고 효율적인 matrix multiplication을 하게 함
+
+- Out of Vocab(OOV)
+  - categorical data도 outliers를 포함함 / 예를들면 차들의 descriptions을 포함하는 데이터세트가 있다고 할 때 이 데이터 세트의 features 중 하나는 차의 색깔일 수 있음 
+  - 차의 흔한 색깔이 이 데이터 세트의 잘 represented되어 있다고 가정하고 그 중 하나를 이러한 서로 다른 색깔이 어떻게 value의 영향을 끼치는지 학습하기 위해서 category했다고 해보자
+  - 하지만 이 데이터세트는 차량의 eccentric한 color(mauve,puce,avocado)를 포함한다고 하면 
+  - 이러한 색깔들을 separate category로 분류하기보단 Out Of Vocab(OOV)이라고 불리는 category의 한 번에 묶어버릴 수 있음
+  - OOV를 사용함으로써 시스템은 rare한 colors에 대해서 학습하는데 시간을 낭비하지 않음
+
+- Hashing
+  - 다른 옵션은 사용가능한 index space에 모든 string을 hash하는 것임
+  - hashing은 collisions을 종종 일으키지만, 몇몇 주어진 문제에 잘 작동하는 같은 인덱스에 있는 공유된 representation으로 된 categories를 모델이 학습하는데 있어서 사용할 것임
+  - hashing은 중요한 term인데, hashing은 collisions때문에 vocabulary를 선택하는 것보다 더 안 좋은 결과를 초래할 수 있음
+  - 다른한편으론 hashing은 vocabuly를 모으는것을 필요로하지 않는데 이것은 feature distribution이 바뀌는데 많은 시간이 걸리는 상황에서는 유용할 수 있음
+  <img src="https://user-images.githubusercontent.com/32586985/74605899-6808fc00-510f-11ea-9921-79fc44edb53b.png">
+  
+- Hybrid of Hashing and Vocabulary
+  - vocabulary를 hashing하는 것과 같이 혼합된 접근법을 사용할 수 있음 
+  - 데이터에서 중요한 categories를 vocabulary로 사용하고 OOV bucket을 다양한 OOV buckets으로 바꾸고 hashing을 사용하여 categories를 buckets으로 바꿈
+  - hash buckets에 있는 categories는 index로 나뉘어져야함 / 모델은 좋은 예측은 하지 않을 것임
+  - 하지만 몇몇의 memory는 Outside of our vocabulary에 대해서 학습하려는 시도를 할 것임
+  <img src="https://user-images.githubusercontent.com/32586985/74605970-efef0600-510f-11ea-8682-c1c4db066a7a.png">
+  
+- Note about Embeddings
+  - embedding이 continuous-valued feature에 대해서 categorical feature를 나타내게 함을 생각해보아라
+  - Deep models은 index를 embedding으로부터 변환하게 됨 / 아래 예시 참조
+  <img src="https://user-images.githubusercontent.com/32586985/74606012-42c8bd80-5110-11ea-8c0c-1055880dc45e.png">
+  
+  - 위에서 언급한 다양한 transformations은 disk의 저장되어 구동되지만 embeddings은 다름
+  - embeddings을 학습하면 일반적인 data transformation은 아님 (model의 일부임)
+  - 다른 model의 가중치를 학습하고 마치 layer of weights와 동등하게 역할을 함
