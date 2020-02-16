@@ -212,3 +212,49 @@
     - 이러한 class를 통해서 우리는 더 넓은 범위의 예시와 더 큰 수를 구할 수 있음
   - Calibration 
     - Upweighting은 확실하게 모델을 교정할 수 있음 / 결과값은 여전히 probabilities하게 해석될 수 있음 
+
+- 데이터 분할 예시
+  - 필요로한 데이터와 샘플링을 모은 후에는 데이터를 training sets, validation sets, testing sets로 분할함
+
+- When Random Splitting isn't the Best Approach
+  - random splitting이 ML 문제에 대해서 좋은 접근법이지만, 항상 좋은 해결책은 아님
+  - 만일 비슷한 예시로 cluster된 예시가 있는 데이터 세트가 있다고 하자 / 여기서 뉴스의 주제의 text에 따라 토픽을 classify하는 모델을 원한다고 하자 / 왜 random split이 문제가 될까?
+  <img src="https://user-images.githubusercontent.com/32586985/74596707-415aaf00-5096-11ea-9fc7-64bd631d4356.PNG">
+  
+  - News stories가 cluster에 나타날 것임 / 같은 topic에 다양한 stroies가 동시에 생길 것임
+  - 만약 데이터를 randomly하게 나눈다면 test set와 training set에 same stories 포함될 것임
+  - 실제로는 이러한 방식으로 작동되지 않을 것임 / 모든 stories가 동시에 나오기 때문에 이러한 방식으로 split하는 것은 skew를 유발함
+  
+  <img src="https://user-images.githubusercontent.com/32586985/74596808-92b76e00-5097-11ea-9bc9-160a64940ed3.PNG">
+  
+  - 이러한 문제를 해결하기위한 접근법은 데이터를 story가 발행된 시점을 기반으로 나누는 것임 / story가 발행된 날일것임
+  - 같은 날 발행된 것으로 stories를 나누는 결과는 same split으로 나뉘게 될 것임
+  
+  <img src="https://user-images.githubusercontent.com/32586985/74596843-2852fd80-5098-11ea-8515-126379407817.PNG">
+  
+  - 많은 stories를 다루게 된다면, day를 넘어서서 비율이 나뉘어 질 것임
+  - 하지만 실제로는 이러한 stories는 news cycle에서의 two days를 넘어서 split될 것임
+  - 대안적으로, 데이터를 어떠한 overlap이 발생하지 않도록 하기 위해서 특정한 범위에서 cutoff를 할 것임
+  - 예를들면, April의 해당하는 달을 stories를 train시킨다고 할 때, week gap으로 overlap을 방지하기 위해서 May에서 2번째 주를 test set으로 사용할 것임 
+  
+- 데이터 분할
+  - news story example에서 보였듯이, random split 자체는 좋은 접근법이 아님
+  - online system에서의 데이터를 split하는 자주 쓰이는 technique는 다음과 같음
+    - Collect 30 days of data
+    - Train on data from Days 1-29
+    - Evaluate on data from Day 30
+  - Online systems에서는 training data가 serving data보다 older하고, 이러한 technique은 validation set이 training과 serving사이에 lag가 되는 것을 보여줌
+  - 하지만 time-based splits은 많은 데이터세트가 있을 경우 잘 작동함
+  - 만일 프로젝트의 데이터가 많지 않다면, 이러한 distributions은 다른 training, validation, testing을 나타내게끔 할 것임
+  - 데이터는 3개의 authors 중 하나로 나뉠 것이고, 데이터는 3개의 main groups으로 들어갈 것임
+  - random split에서 보여줬듯이, 데이터의 각각의 그룹은 training, evaluation, testing set으로 나뉨
+  - 그러므로 모델은 정보를 학습하는데 있어서 prediction time이 필요하지 않게됨
+  - 이러한 문제들은 데이터를 series data든, 특정 기준으로 clustered한 것이든 그룹화하는데 있어서 언제든지 생길 수 있음 
+  - Domain knowledge가 어떻게 데이터를 split하는지 알려주게 됨 
+  - representative한 데이터의 split을 설계할 때 데이터가 무엇을 represent하는지 고려하라
+  - 데이터를 split하는데 golden rule이 존재함 / testing task가 production task와 가능한 밀접하게 match되어야 함 
+
+- 임의 선택
+
+- Practical Considerations 
+  - 
