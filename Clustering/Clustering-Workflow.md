@@ -251,3 +251,43 @@
   <img src="https://user-images.githubusercontent.com/32586985/75105703-faeaee80-5659-11ea-996e-eaa72bc00175.png">
   <img src="https://user-images.githubusercontent.com/32586985/75105708-fde5df00-5659-11ea-9514-8464dc4745c1.png">
   
+- 3.Calculate Manual Similarity
+  - similarity function에 해당하는 코드를 먼저 실행함
+  ```python
+     def getSimilarity(obj1, obj2):
+       len1 = len(obj1.index)
+       len2 = len(obj2.index)
+       if not (len1 == len2):
+         print("Error: Compared objects must have same number of features.")
+         sys.exit()
+         return 0
+       else:
+         similarity = obj1 - obj2
+         similarity = np.sum((similarity**2.0) / 10.0)
+         similarity = 1 - math.sqrt(similarity)
+         return similarity
+  ```
+  - first chocolate와 그 다음에 4 chocolates사이의 similarity를 계산하라 
+  - 다음셀에서는 나오는 실제 feature data에 대한 similarity와 비교해보아라
+  - choc1: 0 / chocsToCompare: [1,4]
+  <img src="https://user-images.githubusercontent.com/32586985/75106567-80be6800-5661-11ea-9409-9830ab78495e.png">
+
+- 4.Cluster chocolate Dataset
+  - k-means clustering functions을 사용하여 설정을 하여라
+  - k가 30 클러스터의 수가 30인 데이터세트로 설정하여 실행하라
+  <img src="https://user-images.githubusercontent.com/32586985/75106773-3938db80-5663-11ea-8e6c-a56b122e43fa.png">
+  <img src="https://user-images.githubusercontent.com/32586985/75106796-8026d100-5663-11ea-93ce-d6ddd4a0f94e.png">
+  <img src="https://user-images.githubusercontent.com/32586985/75106802-89b03900-5663-11ea-8560-b3fd850f37f9.png">
+  <img src="https://user-images.githubusercontent.com/32586985/75106808-916fdd80-5663-11ea-9ef4-702a18215677.png">
+  <img src="https://user-images.githubusercontent.com/32586985/75106810-9af94580-5663-11ea-95d0-77dfdcbea753.png">
+  <img src="https://user-images.githubusercontent.com/32586985/75106813-a3518080-5663-11ea-8ad7-71ac42379384.png">
+  
+  - Inspect Clustering Result
+  - clusterNumber: 7
+  <img src="https://user-images.githubusercontent.com/32586985/75107066-d6940f80-5663-11ea-8717-a87290e19804.png">
+  
+  - clustering result가 의도치않게 특정 features에 가중치를 많이 부여함
+  - 몇 몇의 겹치는 항목으로 인해서 생긴것으로 보임 / 해결책은 supervised similarity measure을 사용하는 것임 / DNN이 해당 정보를 제거해 줄것임
+- 5.Quality Metrics for Clusters
+  - 오류로 인해 추후 결과해석에서 다룰예정
+
