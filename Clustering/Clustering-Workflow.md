@@ -291,3 +291,47 @@
 - 5.Quality Metrics for Clusters
   - 오류로 인해 추후 결과해석에서 다룰예정
 
+## Supervised Similarity Measure
+- 수동으로 결합된 feature data를 비교하는 대신, 임베딩을 통해서 feature data를 줄일 수 있으며, 임베딩을 통해서 비교할 수있음
+- 임베딩은 supervised deep neural network를 통해서 feature data를 스스로 학습함으로써 생산해냄
+- 임베딩맵은 임베딩 공간에 feature data를 벡터화한 것임
+- 임베딩 공간은 feature data set에 있는 숨어있는 몇 개의 구조를 feature data안에 잡아내는 방식보다는 더 적은 차원을 가지고 있음
+- 임베딩 벡터는 예를 들면 유튜브 영상을 같은 유저가 시청했을 경우, 결국 같은 임베딩 공간으로 close 하게 옴
+- similarity measure이 이 closeness를 예제들의 pairs를 위해 similarity를 수량화하는데 어떻게 사용하는지 알 수 있음
+
+- Comparison of Manual and Supervised Measures
+<img src="https://user-images.githubusercontent.com/32586985/75212878-964fa100-57cb-11ea-88f9-4539d9a03abc.png">
+
+- Process for Supervised Similarity Measure
+<img src="https://user-images.githubusercontent.com/32586985/75212945-e29ae100-57cb-11ea-97ff-2fc6481a2690.png">
+
+- Choose DNN Based on Training Labels
+  - DNN을 input과 label 둘 다 쓰여진 feature data를 학습함으로써 임베딩하여 feature data를 줄여라
+  - 예를들어 house data에서 DNN은 가격, 크기, postal code등의 feature를 features 자체를 예측하기 위해서 사용할 것임
+  - feature data를 같은 feature data를 예측하기 위해 사용하기 위해서 DNN은 input feature data를 임베딩함으로써 줄이게 될 것임
+  - 이러한 임베딩을 similarity를 계산하는데 사용할 것임
+  
+  - input data 자체를 예측함으로써 input data를 임베딩하여 학습하는 DNN을 antoencoder라고 부름
+  - autoencoder는 hidden layers가 input과 output layer보다 작고, input feature data를 나타내는 것을 압축시키게끔 학습하도록 되어 있음 
+  - DNN이 학습될 때, last hidden layer로부터 similarity를 계산하기 위해 임베딩을 추출할 것임
+  <img src="https://user-images.githubusercontent.com/32586985/75213403-538ec880-57cd-11ea-836f-5076c437038d.png">
+  
+  - autoencoder은 임베딩을 생산하는데 가장 단순한 선택임
+  - autoencoder은 특정 feature가 다른 similarity를 결정하는 것보다 중요하다면 선택사항이 아님
+  - 예를들어 house data에서는 postal code보다 price가 더 중요하게 여겨짐 
+  - 이러한 경우 중요한 feature에 대해서만 학습 label로 DNN에 사용하라
+  - 이 DNN은 모든 input features를 예측하는 대신 특정한 input feature를 예측할 것임
+  - 이것을 predictor DNN이라고 불리움 / 아래의 feature를 선택하는 가이드라인을 참고하라
+    - categorical features보다 numeric features를 라벨로 선택하라 / loss를 계산하고 해석하는데 numeric features가 더 나음
+    - categorical features를 cardinality가 100이하인 label의 경우 사용하지 마라
+    - 만일 하게 된다면 DNN이 input data를 임베딩 하기 위해서 감소하지 않을 것임 왜냐하면 DNN은 low-cardinality categorical label에 대해서는 쉽게 예측하기 때문임
+    - DNN의 input으로부터 label로 사용된 feature를 제거하라 DNN이 완벽히 output을 예측할 것임
+  - label의 선택에 따라 달려 있지만 DNN의 결과는 autoencoder DNN 혹은 predictor DNN이 될 것임
+
+- Loss Function for DNN
+  - DNN을 학습할 때, loss function을 아래의 과정을 거쳐서 만들어야함
+    - DNN의 모든 output에서 loss를 계산하라 / 해당 output은
+      - Numeric, use mean square error(MSE)
+      - Univalent categorical, use log loss / log loss를 직접 실행할 필요는 없음, library function을 사용하기 때문에
+      - Multivalent categorical, use softmax cross entropy loss / softmax cross entropy loss를 직접 실행할 필요는 없음, library function을 사용하기 때문에
+    -  
