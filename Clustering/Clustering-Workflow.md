@@ -394,29 +394,75 @@
   <img src="https://user-images.githubusercontent.com/32586985/75241112-db45f880-5808-11ea-8f0f-6174fa6b7a18.PNG">
   
 ### 프로그래밍 실습
+- Supervised Similarity Measure
+- k-means with a supervised similarity measure
+- 1.Load and clean data
+  <img src="https://user-images.githubusercontent.com/32586985/75250424-aee7a780-581b-11ea-8840-6b2b5da121ce.png">
 
+- 2.Process Data
+  - DNN을 사용하면 data를 수동으로 process할 필요 없음 / DNN이 데이터를 transform함
+  - 하지만 가능하다면 similarity 계산을 distort하는 features를 제거해야함
+  - 아래의 예시에서는 similarity와 관련없은 features에 대해서 제거를 함
+  ```python
+     choc_data.drop(columns=['review_date','reference_number'],inplace=True)
+     choc_data.head()
+  ```
+  <img src="https://user-images.githubusercontent.com/32586985/75250642-1ef62d80-581c-11ea-964e-08b6bf64a97c.png">
+  
+- 3.Generate Embeddings from DNN
+  - DNN을 feature data의 학습함으로써 임베딩을 생산할 준비가 됨 
+  - set up functions을 통해서 임베딩을 생산하는 DNN을 학습함
+  - DNN train
+    - predictor DNN과 autoencoder DNN을 선택할 수 있음 / predictor DNN의 경우 특정한 한 feature만, autoencoder DNN의 경우 모든 feature에 대해서
+    - 다른 parameters를 바꿀 필요는 없음 / l2_regularization:L2_regularization의 가중치 조절, hidden_dims:hidden layer의 차원 조절
+    <img src="https://user-images.githubusercontent.com/32586985/75251086-3d105d80-581d-11ea-9470-762743d83b2d.png">
+    <img src="https://user-images.githubusercontent.com/32586985/75251095-413c7b00-581d-11ea-9965-ed7ca5285d72.png">
+    
+- 4.Cluster Chocolate Dataset
+  - chocolate을 cluster하기 위해서 k-means clustering functions을 설정하라
+  - k = 160이라는 cluster의 수를 사용할 예정임
+  - k-means의 모든 반복에서 output은 모든 예제로부터의 centroids는 감소하는데 k-means가 항상 converges하듯이 길이의 합이 어떻게 되는지 보여줌
+  <img src="https://user-images.githubusercontent.com/32586985/75251350-c4f66780-581d-11ea-819c-c2955b8e76a2.png">
+  
+- Inspect Clustering Result
+  - parameter를 바꿈으로써 서로 다른 clusters에서의 초콜릿을 관찰하라 
+  - cluster를 볼 때 다음의 질문을 생각하라
+    - clusters가 의미있는가?
+    - clustering의 결과가 manual similarity measure나 supervised similarity measure보다 더 나은 결과를 도출하는가?
+    - clusters의 수를 바꾸는 것이 clusters를 더 의미있게 만드는가 아니면 덜 의미있게 만드는가?
+  <img src="https://user-images.githubusercontent.com/32586985/75251705-82815a80-581e-11ea-9eb1-96252a29349a.png">
+  
+  - cluster가 의미있는가?
+    - cluster의 수가 거의 100을 근접하여 넘을 정도로 증가할 때 cluster가 의미있어짐 / 100 이하의 clusters에서는 dissimilar chocolates가 그룹화 하는 경향을 보임 / numeric features를 grouping하는 것이 categorical features보다 더 의미가 있음 / DNN을 정확히 categorical feature로 encoding하는 것은 가능하지 않음 왜냐하면 예시가 1800를 넘을 경우 categorical features가 가지고 있는 몇 십개의 values에 대해서 충분히 encode하지 못함
+  - clustering의 결과가 manual similarity measure이나 supervised similarity measure보다 더 나은 결과를 도출하는가?
+    - clusters가 manual similarity measure보다는 의미가 있음 왜냐하면 measure을 chocolates사이에서 similarity를 정확히 도출하게 수정할 수 있기 떄문임 / Manual design도 dataset이 복잡하지 않다면 가능함 / supervised similarity measure의 경우 데이터를 DNN에 맡기고 similarty를 encode하는 것도 DNN의 의존함 / 이러한 경우 데이터세트가 작을 경우 DNN이 similarity encode를 정확히 하는데 어려움을 겪음 
+  - clusters의 수를 바꾸는 것이 clusters를 더 의미있게 만드는가 아니면 덜 의미있게 만드는가?
+    - clusters의 수를 증가시키는 것이 clusters를 한계까지 더 의미있게 만듬 / 정확한 clusters로 인해 dissimilar chocolates이 사라질 수 있음
 
+- 5.Quality Metrics for Clusters
+  - set up functions을 설정하여 metrics를 계산함
+  - metrics를 계산하는 것에 다음이 포함됨
+    - cardinality of your clusters
+    - magnitude of your clusters 
+    - cardinality vs magnitude
+  - Observe
+    - plot은 많은 clusters를 위해 cluster metrics를 관찰하는 것이 쉽지 않다는 것을 보여줌 / 하지만 plot은 clustering의 quality의 일반적인 아이디어를 제공해줌 / outlying clusters의 수도 있음
+    - cluster cardinality와 cluster magnitude사이의 상관관계는 manual similarity measure보다 낮음 / lower correlation은 몇 개의 초콜릿은 cluster하기 어려운 것을 보여줌 (large example-centroid distances에 따르면)
+  - clusterQualityMetrics(choc_embed)
+  <img src="https://user-images.githubusercontent.com/32586985/75252789-b198cb80-5820-11ea-9537-223b28b3f8f1.png">
+  
+- Find Optimum Number of Clusters
+  <img src="https://user-images.githubusercontent.com/32586985/75252959-01779280-5821-11ea-89ad-67ea6f5fe689.png">
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- Summary (supervised similarity measure의 특징으로도 볼 수 있음)
+  - Eliminates redundant information in correlated features
+    - DNN은 redundant한 정보를 제거함 / 이 특성을 증명하기 위해서 DNN을 정확한 데이터로 학습하고 manual similarity measure의 결과와 비교해 봐야함
+  - Does not provides insight into calculated similarities
+    - embeddings이 나타내는 것이 알 수 없기 때문에 clustering 결과에 대한 insight이 없음
+  - Suitable for large datasets with complex features
+    - 데이터세트가 DNN을 정확히 학습하기 적다면, DNNs이 학습을 위해서 큰 데이터세트가 필요하단 것을 증명해야함 / 이점은 input data를 이해할 필요가 없다는 것임 / large dataset은 이해하기 어렵기 때문에 이러한 두 특성이 연관성이 깊음
+  - Not suitable for small datasets
+    - 작은 데이터세트는 DNN을 학습하는데 충분한 정보가 없음
+    
 ## Similarity Measure Summary
 <img src="https://user-images.githubusercontent.com/32586985/75241905-62e03700-580a-11ea-80a7-aa316158aa2f.PNG">
