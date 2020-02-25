@@ -334,4 +334,89 @@
       - Numeric, use mean square error(MSE)
       - Univalent categorical, use log loss / log loss를 직접 실행할 필요는 없음, library function을 사용하기 때문에
       - Multivalent categorical, use softmax cross entropy loss / softmax cross entropy loss를 직접 실행할 필요는 없음, library function을 사용하기 때문에
-    -  
+    - 모든 output의 loss를 합쳐서 total loss를 계산하라
+  - loss를 합칠 때, 각각의 feature는 loss의 어느정도 부분을 차지한다는것을 확실시하라
+  - 예를들어, color data를 RGB 값으로 변환할때, 3개의 output이 있을 것임
+  - 하지만 loss를 합칠 때 3개의 output은 color를 위한 loss는 다른 features에 비해서 3배 이상 가중치가 부여되는 것을 의미함
+  - 대신에 각각의 output에 1/3을 곱하여라
+
+- Using DNN in an Online System 
+  - 온라인 머신러닝은 새로운 input data에 대해서 continuous하게 stream이 이어짐
+  - DNN의 새로운 데이터에 대해서 학습을 할 필요가 있음 
+  - 하지만 DNN을 scratch로부터 다시 학습시킨다면 임베딩이 다를 것임 왜냐하면 DNN은 초기에 랜덤 가중치를 부여하기 때문임
+  - 대신에 항상 존재하는 가중치에 warm-start를 한 후 DNN의 새로운 데이터로 업데이트를 하여라
+  
+## Generating Embeddings Examples
+- 이 예시는 임베딩이 어떻게 supervised similarity measure을 사용해서 생산하는지 보여줌
+- 아래의 예시가 있다고 가정해보자 (manual similarity measure)
+<img src="https://user-images.githubusercontent.com/32586985/75238529-830cf780-5804-11ea-9bad-946c5f652ab4.PNG">
+
+- Preprocessing Data
+  - feature data를 input으로 사용하기 이전에, 데이터를 preprocess를 해야함
+  - preprocessing steps은 manual similarity measure을 생성할 때 기본이 되는 과정임
+  <img src="https://user-images.githubusercontent.com/32586985/75238707-cebfa100-5804-11ea-9021-97acb9aafc76.PNG">
+  
+- Choose Predictor or Autoencoder
+  - 임베딩을 생성하기 위해서, autoencoder 혹은 predictor을 선택할 수 있음
+  - default choice는 autoencoder임 / predictor은 데이터세트의 특정한 features가 similarity를 결정할 때만 선택함
+  - Train a Predictor
+    - 이 features 같은 경우 예시들 사이에서 similarity를 선택하는데 중요한 DNN을 위한 training labels로써 선택할 수 있음
+    - price가 houses사이에 similarity를 결정하는데 가장 중요한 것이라고 가정해보자
+    - price를 training label로 선택하고, DNN에서 input feature data로부터 제거함
+    - input data로써 모든 다른 features를 사용함으로써 DNN을 학습시켜라
+    - 학습을 위해서 loss function은 예측과 실제 값 사이의 MSE로 될 것임
+  - Train an Autoencoder
+    - autoencoder를 우리의 dataset으로써 다음의 과정을 따름
+      - 1.autoencoder의 hidden layers은 input과 output layer보다 작아야함
+      - 2.Supervised Similarity Measure로 표현된 각각의 output에 대해서 loss를 계산하라 
+      - 3.각각의 output에 대해서 loss를 합한 loss function을 만들어라 / 모든 feature에 대해 동일하게 loss의 가중치를 부여하라 / color data는 RGB로써 생산되므로, RGB 각각의 1/3의 output의 가중치를 부여하라 
+      - 4.DNN을 학습하라
+
+- Extracting Embeddings from the DNN  
+  - DNN을 학습한 이후, predictor던 autoencoder던 DNN으로부터 예시를 임베딩하기 위한 것을 추출하라
+  - input으로써 feature data의 예시를 사용함으로써 임베딩을 추출하고, 최종적인 hidden layer의 output을 읽어라
+  - 이 output은 embedding vector로부터 기인한 것임
+  - 비슷한 houses에 대한 vector는 비슷하지 않은 houses보다 vector가 close together 해야함
+
+## Measuring Similarity from Embeddings
+- 어떠한 예제로도 임베딩을 할 것임
+- similarity measure은 이러한 임베딩과 returns을 그들의 similarity를 측정하는 수로 가져옴
+- 임베딩은 단순히 vectors of numbers라는 것을 기억하라
+- 만일 두 개의 벡터에서의 similarity를 찾을려면 아래의 방식을 참조하라
+<img src="https://user-images.githubusercontent.com/32586985/75239959-e8fa7e80-5806-11ea-8900-04ab63d8d5cb.PNG">
+
+- Choosing a Similarity Measure
+  - cosine과 반대로, 내적은 vector길이의 일부분을 차지함
+  - 이것은 매우 중요함 / 왜냐하면 예제에서 training set에서 임베딩 vector를 큰 길이로 갖는 경우가 있게 빈번하게 등장하기 때문에
+  - popularity를 계산하고 싶다면 내적을 선택해야함 / 하지만 risk는 popular examples이 similarity metric을 skew할 수도 있기 때문임
+  - 이 skew를 밸런스화 하기 위해서 길이를 거듭제곱 알파가 1보다 작고 내적을 (a알파제곱)(b알파제곱)cos(세타)로 내적을 계산할 수 있음
+  - vector length를 similarity measure로 어떻게 변화시켰는지 잘 이해시키기 위해서 vector 길이를 1로 일반화하고 3개의 measures를 각각의 비율로 생각함
+  <img src="https://user-images.githubusercontent.com/32586985/75241112-db45f880-5808-11ea-8f0f-6174fa6b7a18.PNG">
+  
+### 프로그래밍 실습
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Similarity Measure Summary
+<img src="https://user-images.githubusercontent.com/32586985/75241905-62e03700-580a-11ea-80a7-aa316158aa2f.PNG">
