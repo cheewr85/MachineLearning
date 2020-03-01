@@ -152,4 +152,84 @@
     <img src="https://user-images.githubusercontent.com/32586985/75608771-f3d64b80-5b45-11ea-9e47-6ae644983cbf.PNG">
     <img src="https://user-images.githubusercontent.com/32586985/75608778-fb95f000-5b45-11ea-963f-52fe6612c695.PNG">
     <img src="https://user-images.githubusercontent.com/32586985/75608782-03ee2b00-5b46-11ea-8aeb-ff8c4db74351.PNG">
+  
+  - 3.Calculate Manual Similarity
+    - 데이터를 process했다면 similarity를 초콜릿 사이에서 계산하는 것은 간단해졌음(모든 features는 numeric하고 같은 range에 있기 때문에) / 어떠한 초콜릿에서도 모든 features의 root mean square error(RMSE)를 찾을 수 있음
+    ```python
+       def getSimilarity(obj1, obj2):
+         len1 = len(obj1.index)
+         len2 = len(obj2.index)
+         if not (len1 == len2):
+           print("Error: Compared objects must have same number of features.")
+           sys.exit()
+           return 0
+         else:
+           similarity = obj1 - obj2
+           similarity = np.sum((similarity**2.0) / 10.0)
+           similarity = 1 - math.sqrt(similarity)
+           return similarity
+    ```
+    - 이제 첫번째 초콜릿과 그 다음에 4개의 초콜릿사이에 similarity를 계산해보자 / 직관적인 예상과 반하여 실제 feature data를 통해 계산된 similarity를 비교함으로써 계산된 similarity를 증명해보라
+    <img src="https://user-images.githubusercontent.com/32586985/75616639-f01ee500-5b96-11ea-8f58-d3b66072ef69.PNG">
     
+  - 4.Cluster Chocolate Dataset
+    - cluster하기 위해서 k-means clustering functions을 설정하여라
+    - k는 cluseters의 수이고 코드를 실행하여라 / k-means의 반복중에 output은 모든 예제로부터 그들의 centroids가 감소하는 것으로 모든 distance의 합이 어떻게 되는지 보여줌(k-means가 항상 converges하듯이)
+    - 테이블에서 할당된 centroid에서 각각 예시에서의 centroid column과 pt2centroid column에서의 centroids의 예시로부터의 distance를 확인해보라
+    <img src="https://user-images.githubusercontent.com/32586985/75616725-66701700-5b98-11ea-9315-00168d5cbe21.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616753-c666bd80-5b98-11ea-877c-d9e89748ebe6.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616754-cebef880-5b98-11ea-9604-147ed0fb3cfb.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616756-d5e60680-5b98-11ea-937e-083f83f199ff.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616760-de3e4180-5b98-11ea-8b0c-46fabe1bfd03.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616771-eeeeb780-5b98-11ea-92ea-3a08032fa744.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616774-f6ae5c00-5b98-11ea-9c56-68c90ea1b693.PNG">
+    
+    - Inspect Clustering Result
+      - parameter clusterNumber를 바꿈으로써 서로 다른 clusters의 chocolates를 관찰하라
+      - clusters를 관찰할때 다음을 고려하라
+        - Are the clustering meaningful?
+        - Do the clusters weight certain features more than others? Why?
+        - Does changing the number of clusters make the clusters more or less meaningful?
+      <img src="https://user-images.githubusercontent.com/32586985/75616834-be5b4d80-5b99-11ea-8eb4-2355ee8573db.PNG">
+    
+    - clustering result가 의도치 않게 특정 feature에 생각 이상으로 가중치를 부여함
+      - chocolate maker와 같은 feature에서의 같은 국가가 나오고 정보가 중복되는 경우가 있어서 그럴 것임
+      - 해당 부분에 해결방안은 supervised similarity measure를 사용하는 것임 DNN이 서로 연관된 정보를 제거하기 때문에 
+      - one-hot encoding에서도 생각해보면 중복되서 가중치가 부여되는 경우가 있는데 이러한 경우때문에 결과값에 skew가 생김
+  
+  - 5.Quality Metrics for Clusters
+    - cluster를 위해서 metrics를 계산해보자 / set up function 설정
+    - 다음을 계산함 
+      - cardinality of your clusters
+      - magnitude of your clusters 
+      - cardinality vs Magnitude
+    - 해당 plot을 통해 clusters의 outilers와 average를 찾을 수 있고 비교할 수 있음
+  
+  - Find Optimum Number of Clusters 
+    - 해당 코드를 실행하여서 Optimum number을 찾아보자
+    <img src="https://user-images.githubusercontent.com/32586985/75616966-97058000-5b9b-11ea-8aba-76f2a182bcba.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616971-ac7aaa00-5b9b-11ea-8486-3e862814312c.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75616972-b0a6c780-5b9b-11ea-8d99-3985addd58d6.PNG">
+    
+    - 이상적인 loss vs clusters의 plot은 loss가 flattens out하며 감소하는 것을 넘어선 확실한 inflection point가 있음
+    - plot은 명확한 infection point가 없지만 loss의 감소는 두 번 정도 일어남 (대략 k = 15, k = 35)
+    - k는 15~35가 근접한 optimum values라고 할 수 있음 / plot은 k-means 알고리즘의 내재된 랜덤성에 의해서 plot이 달라질 수 있음을 알아야 함
+    - 데이터를 clumped한 예시가 있다면 확실한 inflection plot이 보임 / 만일 데이터가 natural clumps가 없다면, plot은 오직 k를 위한 optimum value만을 알 수 있게끔 할 것임
+    
+  - Characteristics of a manual similarity metric:
+    - Does not eliminate redundant information in correlated features
+      - manual similarity measure은 features사이에 redundant information을 삭제하지 않음
+    - Provides insight into calculated similarities
+      - clustering results를 볼 때, clustering results에 maker location과 bean origin이 얼마나 많은 영향력을 보였는지 알 수 있을 것임 / one-hot encoding이 다른 features보다 maker와 bean type에 두 번 정도 가중치를 부여했다는 것도 알 수 있음
+    - Suitable for small datasets with few features
+      - 예시가 2천개보다 적고 오직 9개의 features만 있었기 때문에 초콜릿 데이터세트를 manual similarity measure로 설계할 수 있었음
+    - Not suitable for large datasets with many features
+      - 만약 초콜릿 데이터세트가 수십개의 features와 수천개의 예시가 있다면, 정확한 similarity measure를 설계하기 어려웠을 것이고 데이터세트를 넘어선 similarity measure를 증명하기 어려웠을 것임 
+
+
+- Supervised Similarity Measure
+  - 1.Load and clean data
+  <img src="https://user-images.githubusercontent.com/32586985/75617086-bbfaf280-5b9d-11ea-8fa6-f5ed4c22c3c2.PNG">
+  
+  - 2.Process Data
+    - 
