@@ -232,4 +232,86 @@
   <img src="https://user-images.githubusercontent.com/32586985/75617086-bbfaf280-5b9d-11ea-8fa6-f5ed4c22c3c2.PNG">
   
   - 2.Process Data
-    - 
+    - DNN을 사용하기 때문에, 데이터를 수동으로 생산할 필요가 없음 / DNN이 데이터를 transform해서 줌
+    - 하지만 가능하다면, similarity calculation을 왜곡하는 features를 제거해야함
+    - review_data와 reference_number은 similarity와 연관되어 있지 않음 / 크게 관련이 없기 때문에 해당 features를 제거함
+    ```python
+       choc_data.drop(columns=['review_date', 'reference_number'],inplace=True)
+       choc_data.head()
+    ```
+    <img src="https://user-images.githubusercontent.com/32586985/75617646-485ce380-5ba5-11ea-9548-ec4805693bc3.PNG">
+    
+  - 3.Generate Embeddings from DNN  
+    - DNN을 feature data에 학습함으로써 embeddings를 생산할 준비가 됨 / set up function으로 설정준비
+    - 이후 DNN을 학습할 것임 / predictor DNN과 autoencoder DNN으로 parameter를 specifying함으로써 선택할 수 있음
+      - predictor DNN을 선택한다면, 하나의 feature만 specify함
+      - autoencoder DNN을 선택한다면, 모든 features를 specify함
+    - 다른 parameter를 변경할 필요는 없지만 궁금하다면
+      - l2_regularization: Controls the weight for L2 regularization
+      - hidden_dims: Controls the dimensions of the hidden layers
+    - 해당 plot을 생산할 것임
+      - 'total': Total loss across all features
+      - 'feature': Loss for the specified output features
+      - 'embeddings': First two dimensions of the generated embeddings.
+    <img src="https://user-images.githubusercontent.com/32586985/75617706-4a737200-5ba6-11ea-95d2-2f8a31b2c813.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75617711-61b25f80-5ba6-11ea-925e-4b3daf363d51.PNG">
+    <img src="https://user-images.githubusercontent.com/32586985/75617719-78f14d00-5ba6-11ea-9d88-135290b567ae.PNG">
+    
+  - 4.Cluster Chocolate Dataset
+    - 먼저 k-means clustering functions을 설정하여라
+    - k가 clusters의 수이고 해당 함수를 실행해보자 / k-means의 반복중에 output은 모든 예제로부터 그들의 centroids가 감소하는 것으로 모든 distance의 합이 어떻게 되는지 보여줌(k-means가 항상 converges하듯이)
+    - 테이블에서 할당된 centroid에서 각각 예시에서의 centroid column과 pt2centroid column에서의 centroids의 예시로부터의 distance를 확인해보라
+    <img src="https://user-images.githubusercontent.com/32586985/75617788-38de9a00-5ba7-11ea-85d6-30581efd3dea.PNG">
+    
+    - Inspect Clustering Result
+      - parameter clusterNumber를 바꿈으로써 서로 다른 clusters의 chocolates를 관찰하라
+      - clusters를 관찰할때 다음을 고려하라
+        - Are the clusters meaningful?
+        - Is the clustering result better with a manual similarty measure(see your previous Colab) or a supervised similarity measure?
+        - Does changing the number of clusters make the clusters more or less meaningful?
+        <img src="https://user-images.githubusercontent.com/32586985/75617812-8d821500-5ba7-11ea-8156-d558afccd632.PNG">
+        
+    - Discussion of clustering results
+      - Are the clusters meaningful?
+        - clusters은 clusters의 수가 약 100정도 넘을 정도로 증가할 때 의미가 있음 / clusters가 100이하일 경우, dissimilar chocolates까지 같이 grouped되는 경향이 있음 / numeric features로 grouping 하는게 categorical features보다 더 의미가 있음 / DNN은 예시가 1800이하일 경우 categorical features가 가지고 있는것에서의 수십개의 값을 encode하기에 충분한 데이터가 없기 떄문에 categorical features를 정확히 encoding 하는 것이 불가능한 것이 원인임
+      - Is the clustering result better with a manual similarity measure or a supervised similarity measure?
+        - clusters은 manual similarity measure이 더 의미있음 왜냐하면 similarity를 더 정교하게 하기 위해서 measure을 조절할 수 있기 때문임
+        - Manual design은 데이터세트가 복잡하지 않기 때문에 가능함
+        - supervised similarity measure은 DNN에 데이터를 던져두고 DNN이 similarity를 encode하는것에만 의존함
+        - 단점은 데이터세트가 작다면 DNN은 데이터를 similarity로 정확히 encode하는데 부족함
+      - Does changing the number of clusters make the clusters more or less meaningful?
+        - clusters의 수를 증가시키는 것은 clusters를 한계치까지 의미있게 만듬 왜냐하면 dssimilar chocolates은 distinct clusters로 분열시킬 수 있기 때문임
+  
+  - 5.Quality Metrics for Clusters
+    - set up function으로 먼저 설정함
+    - 해당 metrics를 계산할 것임
+      - cardinality of your clusters
+      - magnitude of your clusters
+      - cardinality vs magnitude
+    - 봐야할 점 
+      - 많은 clusters가 있는 cluster metrics를 관찰하는 것은 쉽지 않음 / 하지만 plot은 clustering의 quality의 일반적인 아이디어를 제공함 / 많은 outlying clusters가 있음
+      - cluster cardinality와 cluster magnitude사이에 상관관계는 manual similarity measure보다 낮음 / 낮은 상관관계는 몇 개의 chocolates을 cluster하기 힘들게 하고, 큰 example-centroid distance로 이끔
+    - 해당 옵션을 바꾸며 결과값을 확인하라
+      - dimensions of DNN's hidden layer
+      - autoencoder or predictor DNN
+      - number of clusters
+    ```python
+       clusterQualityMetrics(choc_embed)
+    ```
+    <img src="https://user-images.githubusercontent.com/32586985/75618057-c02e0c80-5bab-11ea-9091-0ef421de809a.PNG">
+    
+  - Find Optimum Number of Clusters
+    - 직접 실행시켜 확인해보자
+    - 결과치는 low k일 경우 k-means가 데이터를 clustering을 하는데 어려움을 겪었고, k가 100정도로 증가한다면, loss는 out되고 k-means가 효율적으로 cluster안에 데이터를 grouping함
+    <img src="https://user-images.githubusercontent.com/32586985/75618108-90333900-5bac-11ea-8fdd-250e6bcbacef.PNG">
+    
+  - Summary
+    - Eliminates redundant information in correlated feature
+      - DNN이 redundant information을 제거함 / 하지만 이 특성에서 본 것처럼, DNN을 정확한 데이터로 학습을 하고 manual similarity measure의 결과와 비교를 해야함
+    - Does not provides insight into calculated similarities 
+      - embedding이 나타내는것이 무엇인지 몰랐기 때문에, clustering result에 대한 자세한 것을 알 수 없음
+    - Suitable for large datasets with complex features
+      - dataset가 DNN을 학습하기에 너무 작다면, DNN을 더 큰 데이터세트로 학습을해서 증명해야함 / 이 장점은 input data에 대해서 이해할 필요가 없는것이고 / 이러한 큰 데이터세트는 이해하기 어렵기 때문에 이 두 특성은 직접 보아야함
+    - Not suitable for small datasets
+      - small datasets은 DNN을 학습할 정도의 충분한 정보를 가지고 있지 않음
+      
