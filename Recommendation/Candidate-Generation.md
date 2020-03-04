@@ -265,3 +265,66 @@
     - softmax layer은 scores <img src="https://user-images.githubusercontent.com/32586985/75870922-166eaa00-5e4f-11ea-8f9c-ee635646b965.PNG"> 의 vector를 probability distribution으로 maps함
     <img src="https://user-images.githubusercontent.com/32586985/75871015-4322c180-5e4f-11ea-8bc1-5df6d380df7a.PNG">
     
+    - Loss Function
+      - loss function을 정의하는 것은 다음과 같음
+        - <img src="https://user-images.githubusercontent.com/32586985/75882533-b71b9480-5e64-11ea-98df-cc84c50558f9.png">, softmax layer의 output (a probability distribution)
+        - p,성장치,유저가 interact하는 items를 나타냄 (유저가 클릭하거나 보는 YouTube videos) / 이것은 normalized multi-hot distribution(a probability vector)으로 나타날 수 있음
+      - 아래의 예를 본다면, 두 개의 probability distributions으로 cross-entropy loss를 사용할 수 있음
+      <img src="https://user-images.githubusercontent.com/32586985/75882811-44f77f80-5e65-11ea-93fb-971921f52db0.png">
+      
+    - Softmax Embeddings
+      - item j의 probability는 <img src="https://user-images.githubusercontent.com/32586985/75882888-6bb5b600-5e65-11ea-937b-02c0983ec7fc.png">, 로 주어짐 / Z는 j의 의존하지 않는 normalization constant임 
+      - 다른 한편으로는 <img src="https://user-images.githubusercontent.com/32586985/75882986-9b64be00-5e65-11ea-9eac-780b10e4d24c.png">, item j의 log probability는 (additive constant의 달림) query와 item의 embeddings로 해석된 두 개의 d-차원의 벡터의 내적으로 됨 
+        - <img src="https://user-images.githubusercontent.com/32586985/75883145-de269600-5e65-11ea-922e-e554efbd62c8.png">는 last hidden layer의 output임 / 우리는 이것을 query x의 embeddings이라고 부름
+        - <img src="https://user-images.githubusercontent.com/32586985/75883222-03b39f80-5e66-11ea-9b5b-1d7dc4f680ca.png">는 벡터의 output j의 마지막 hidden layer의 연결된 것의 가중치를 부여한 것이며, item j의 embedding이라고 부름
+        <img src="https://user-images.githubusercontent.com/32586985/75883347-39588880-5e66-11ea-9c6f-d3e8aad5b234.png">
+  
+  - DNN and Matrix Factorization
+    - softmax model과 matrix factorization model에서 system은 item j당 Vj인 하나의 embedding vector를 학습함 
+    - matrix factorization에서 item embedding matrix <img src="https://user-images.githubusercontent.com/32586985/75883576-92c0b780-5e66-11ea-866e-766f83f586fa.png">라고 부르는 것은 softmax layer의 현재 가중치를 부여한 것과 같음
+    - 하지만 query embedding은 다름 / query i당 Ui인 하나의 embedding을 학습하는 대신 시스템은 query feature x로부터 embedding <img src="https://user-images.githubusercontent.com/32586985/75883816-f9de6c00-5e66-11ea-9a04-b3b5d24ad8a5.png">에 mapping하는 것을 학습함 
+    - 그러므로 이 DNN model을 query side를 nonlinear function <img src="https://user-images.githubusercontent.com/32586985/75883947-3a3dea00-5e67-11ea-8689-41a2a3ba63a8.png"> 으로 바꾸는 matrix factorization의 generalization으로써 생각해볼 수 있음 
+    
+    - Can You Use Item Features?
+      - item side에 같은 아이디어를 적용할 수 있을까? / 즉, item당 embedding을 학습하는 대신에 model이 item features를 embedding으로 map하는 nonlinear function을 학습할 수 있을까? / two-tower neural network를 사용하여 할 수 있음 
+      - two neural networks를 구성하는 것은 다음과 같음
+      <img src="https://user-images.githubusercontent.com/32586985/75884255-d4059700-5e67-11ea-8d8a-12301970e30c.png">
+      
+      - model의 output을 <https://user-images.githubusercontent.com/32586985/75884310-ec75b180-5e67-11ea-99be-c739e3672f0f.png">의 내적으로 정의할 수 있음
+      - 이것은 더이상 softmax model이 아님 / 새로운 모델은 각각 query x(query)의 probability vector대신에 one value per pair(x(query),x(item))을 예측할 수 있음 
+
+  - Softmax Training
+    - Training Data
+      - softmax training data는 query features x와 user가 interact하는 items의 vector로 구성되어 있음 
+      - 아래의 그림에서는 blue로 색칠되어 있음 / model의 다양성은 다른 layers에서 가중치가 들어감 / 아래의 그림에서는 orange로 색칠되어 있음 / 모델은 stochastic gradient descent의 variant를 사용하면서 학습할 것임 
+      <img src="https://user-images.githubusercontent.com/32586985/75884988-0bc10e80-5e69-11ea-84f4-45495609934f.png">
+      
+    - Negative Sampling
+      - loss function이 두 개의 probability vectors <img src="https://user-images.githubusercontent.com/32586985/75885070-3743f900-5e69-11ea-8af5-7ed657b5daad.png">를 비교하기 때문에 loss의 gradient(for a single query x)를 계산하는 것이 꽤 expensive한 것일 수 있음 (만약 corpus size n이 너무 크다면)
+      - 오직 positive items를 위해서만 gradients를 계산하기 위한 system을 설정할 것임 / 하지만 만약 system이 positive pairs를 학습한다면 model이 같은 folding으로 인해 suffer할 수 있음
+      - Folding
+      <img src="https://user-images.githubusercontent.com/32586985/75885648-395a8780-5e6a-11ea-9d2f-eb9095be8e00.png">
+      
+        - 위에 사진을 참조하면, 각각의 color가 queries와 items의 서로 다른 카테고리를 나타낸다고 가정하자
+        - 각각의 query(square로 나타나는)는 오직 같은 color의 items(circle로 나타나는)으로만 interacts함
+        - 예를들어 유튜브에 서로 다른 언어의 각각의 카테고리가 있다고 가정해보자 
+        - 일반적인 유저는 하나의 주어진 언어로 videos를 interact할 것임
+        - 모델은 어떻게 주어진 색깔의 각각의(색깔안에 정확히 capturing된 similarity) 연관된 query/item embeddings를 위치시키는지 학습할 것임 / 하지만 서로 다른 색깔로부터의 embeddings은 우연히 embedding space에서 같은 지역에 나타날 수 있음
+        - 이 현상을 folding이라고 하며 spurious recommendations을 나타낼 수 있음 / query time은 model이 다른 그룹으로부터의 item을 높은 점수로 부정확하게 예측할 것임
+        - Negative examples는 items이 주어진 query에서 irrelevant한 label이 된 것임
+        - 모델이 학습하는동안 negative examples를 보여주는 것은 모델이 서로 다른 그룹의 embeddings가 각각으로부터 pushed away되야하는 것을 학습하게 함 
+      - 모든 items를 gradient(which can be too expensive)로 계산하는 것으로 사용하거나 positive items(which makes the model prone to folding)만을 사용하는 것 대신 negative sampling을 사용해보라 / 더 정확히는 approximate gradient를 계산할 것임 (아래를 따라)
+        - All positive items (the ones that appear in the target label)
+        - A sample of negative items (j in 1,...,n)
+      - negatives를 sampling을 하는 것에 서로 다른 전략이 있음
+        - You can sample uniformly
+        - 높은 score <img src="https://user-images.githubusercontent.com/32586985/75886740-129d5080-5e6c-11ea-82b5-4d5c29d14272.png">와 함께 items j가 높은 probability를 줄 수 있음 
+        - Vj는 직관적으로, 이러한 예시는 대부분의 gradient로 contribute됨 / 이런 예시는 hard negatives로 불리움
+      
+    - On Matrix Factorization Vs. Softmax
+      - DNN 모델은 Matrix Factorization의 많은 제한을 해결할 수 있음 / 하지만 query를 학습하는 것은 더 힘듬 
+      - 아래의 table은 두 모델 사이의 중요한 차이점을 보여줌
+      <img src="https://user-images.githubusercontent.com/32586985/75887029-82abd680-5e6c-11ea-8d3b-3e05962565ec.png">
+      
+      
+      
