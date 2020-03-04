@@ -227,4 +227,41 @@
         - Block (0,1)은 user features에 multi-hot encoding임 
         - Block (1,0)은 item features에 multi-hot encoding임 
         
-      
+- 프로그래밍 실습
+
+
+
+## Deep Neural Network Models
+- matrix factorization의 한계가 있음
+  - side features를 사용하는 것에 어려움(즉, query ID/item ID를 넘어선 어떠한 features) / 결과적으로 모델은 학습세트에서 나타내는 오직 user나 item만을 queried할 수 있음
+  - recommendation과의 관련성 popular items을 모두를 위해서 추천하는 경향이 있음, 특히 similarity measure로써 내적을 사용할 때
+  - 특정 유저의 interests를 확인하는 것이 더 나음
+- DNN 모델은 matrix factorization의 이러한 한계를 다룰 수 있음 
+- DNN은 query features와 item features를 쉽게 통합시킬 수 있음(network input layer의 유용성때문에) / user의 특정 interests를 잡아내는데 도움을 줌 / 그리고 recommendation과의 연관성을 향상시킴
+
+- Softmax DNN for Recommendation
+  - DNN모델로 가능한 것은 softmax이며 이것은 문제를 multiclass prediction problem으로써 다룰 수 있음
+    - input은 user query임
+    - output은 corpus에서의 items의 수와 같은 사이즈의 가능한 벡터이며, 각각의 item을 interact하는 가능성을 나타내며, 가능성은 Youtube 비디오를 보거나 클릭하는 가능성임
+  
+  - Input 
+    - DNN의 input은 아래를 포함함
+      - dense features (for example, watch time and time since last watch)
+      - sparse features (for example, watch history and country)
+    - matrix factorization 접근법과는 다르게, age나 country같은 side features를 추가할 수 있음 / input vector를 x로 표기함
+    <img src="https://user-images.githubusercontent.com/32586985/75870157-eecb1200-5e4d-11ea-90e0-7c3f457bb0d8.PNG">
+    
+  - Model Architecture
+    - model architecture은 complexity를 결정하거나 모델의 expressivity를 결정함
+    - hidden layers와 non-linear activation functions을 추가함으로써, 모델은 데이터에서 더 복잡한 관계를 파악할 수 있음
+    - 하지만 parametres의 수가 증가함에따라 model을 학습하기 어렵게 만들거나 serve를 더 힘들게 만듬 
+    - 마지막 hidden layer의 output을 <img src="https://user-images.githubusercontent.com/32586985/75870439-51241280-5e4e-11ea-8550-07fb20a533ca.PNG">로 표기함     
+    <img src="https://user-images.githubusercontent.com/32586985/75870515-64cf7900-5e4e-11ea-9874-3d618a67b411.PNG">
+  
+  - Softmax Output:Predicted Probability Distribution
+    - 모델은 last layer의 ouput <img src="https://user-images.githubusercontent.com/32586985/75870619-93e5ea80-5e4e-11ea-9429-61a83ae3e48c.PNG">,probability distribution가 <img src="https://user-images.githubusercontent.com/32586985/75870728-c0016b80-5e4e-11ea-8502-90c45452e20c.PNG">인 softmax layer를 통해서 maps함
+    <img src="https://user-images.githubusercontent.com/32586985/75870848-f0e1a080-5e4e-11ea-8f78-2664794867ab.PNG">
+    
+    - softmax layer은 scores <img src="https://user-images.githubusercontent.com/32586985/75870922-166eaa00-5e4f-11ea-8f9c-ee635646b965.PNG"> 의 vector를 probability distribution으로 maps함
+    <img src="https://user-images.githubusercontent.com/32586985/75871015-4322c180-5e4f-11ea-8bc1-5df6d380df7a.PNG">
+    
