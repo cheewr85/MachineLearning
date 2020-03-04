@@ -161,3 +161,70 @@
     - A sum over unobserved entries (treated as zeroes)
     <img src="https://user-images.githubusercontent.com/32586985/75859409-4c0a9780-5e3d-11ea-8eff-f90b5be6887f.PNG">
     
+    - w0는 two terms의 가중하는 hyperparameter고 하나나 다른 것들로 objective가 dominated되지 않음
+    - 이러한 hyperparameter를 설정하는 것은 매우 중요함
+    <img src="https://user-images.githubusercontent.com/32586985/75865318-b5db6f00-5e46-11ea-8f52-7b532a81cecf.PNG">
+    
+      - w(i,j)는 query i와 item j의 frequency function임
+
+- Minimizing the Objective Function
+  - 일반적인 알고리즘은 objective function을 minimize하는 것을 포함함
+    - Stochastic gradient descent (SGD)는 loss functions을 minimize하는 일반적인 방법임
+    - Weighted Alternating Least Squares (WALS)는 특별한 objective의 specialized되어있음
+  - objective는 두 matrices U와 V 각각의 quadratic임 / WALS는 embeddings을 무작위로 initializing하지만, 두 개로 대체할 수 있음
+    - Fixing U and solving for V
+    - Fixing V and solving for U
+  - 각각의 stage는 (linear system의 해답을 통해) 정확히 풀릴 수 있고 distributed되게 할 수 있음 
+  - 이 기술은 converge를 보장함 왜냐하면 각각의 과정이 loss를 감소시키는걸 보장하기 때문임
+
+- SGD vs. WALS
+  - SGD와 WALS는 장단점이 있음 / 아래를 참고하여 비교하여라
+  - SGD
+    - advantages
+      - Very flexible / can use other loss functions
+      - Can be parallelized
+    - disadvantages
+      - Slower / does not converge as quickly
+      - Harder to handle the unobserved entries (need to use negative sampling or gravity)
+  - WALS
+    - advantages
+      - Can be parallelized
+      - Converges faster than SGD
+      - Easier to handle unobserved entries
+    - disadvantage
+      - Reliant on Loss Squares only
+      
+- Collaborative Filtering Advantages & Disadvantages
+  - Advantages
+    - No domain knowledge necessary
+      - 도메인 지식을 알 필요가 없음 / embeddings가 자동으로 학습되기 때문에
+    - Serendipity
+      - 모델이 유저의 새로운 interests를 발견하는걸 도와줌
+      - ML system이 user에게 주어진 item에 대해서 흥미가 있는지 알 수없으나 모델은 similar users가 그 item으로 흥미를 가졌기 때문에 여전히 추천할 것임
+    - Great starting point
+      - 몇 번의 확장으로, system은 matrix factorization model을 학습하는데 feedback matrix만을 필요로 할 것임 
+      - 특별히 시스템은 contextual한 features를 필요로 하진 않아함 / 실제로는 이것은 다양한 후보 생성 중에 하나로 쓰일 것임
+  - Disadvantages
+    - Cannot handle fresh items
+      - 주어진 pair (user,item)을 위한 모델의 예측은 해당하는 embeddings에서의 내적임
+      - 그래서 만약 item이 학습하는동안 보내지지 않는다면, 시스템은 embedding을 위해서 생성할 수 없을 것이며 이 item을 가지고 모델을 query할 수 없을 것임
+      - 이 주제는 cold-start problem이라고 종종 불려왔음 / 하지만 아래의 기술은 cold-start problem의 확장된 생각을 가져오게 할 수 있음
+        - Projection in WALS
+          - 학습에서 보여지지 않은 새로운 item i0가 주어지면 시스템은 유저에 대한 몇 번의 상호작용후, 시스템은 embedding v(i0)를 이 item을 위해 전체 모델을 재학습하지 않고 쉽게 계산할 수 있음
+          - 시스템은 아래의 방정식이나 가중치버전을 풀 수 있음 
+          <img src="https://user-images.githubusercontent.com/32586985/75867438-f8eb1180-5e49-11ea-8c4c-b3e278197b25.PNG">
+          
+          - 이 방정식은 WALS에서의 하나의 iteration과 같음 / user embeddings은 계속해서 교정될 것이고 시스템은 item i0의 embedding을 위해 해결될 것임 / 새로운 유저에게도 똑같이 적용될 것임
+        - Heuristics to generate embeddings of fresh items
+          - 만약 시스템이 interactions을 가지고 있지 않다면, 시스템은 같은 범주로부터의 items의 embeddings를 평균을 냄으로써 embeddings를 예상할 수 있음 (같은 업로더(Youtube)같은)
+    - Hard to include side features for query/item
+      - query나 item ID를 넘어선 어떠한 features를 side feauters라고 함 
+      - movie recommendations에선 side features는 country나 age를 포함할 수 있음 
+      - 이용가능한 side features를 포함하는 것은 모델의 quality를 증가시킴
+      - 비록 WALS에서의 side features를 포함시키는 것이 쉽지 않지만, WALS를 generalization을 하는 것은 이것을 가능하게 함
+      - WALS를 generalize하기 위해서 block matrix <img src="https://user-images.githubusercontent.com/32586985/75868075-e3c2b280-5e4a-11ea-8f3c-8504fcbd21e6.PNG">를 정의함으로써, features가 함께 있는 input matrix를 
+        - Block (0,0)은 feedback matrix A의 원본임
+        - Block (0,1)은 user features에 multi-hot encoding임 
+        - Block (1,0)은 item features에 multi-hot encoding임 
+        
+      
