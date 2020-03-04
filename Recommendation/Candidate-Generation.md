@@ -125,3 +125,39 @@
   - 각각의 (user,item) pair는, 0이 아니라면 유저가 영화를 봤을 때 user embedding과 item embedding의 내적이 1에 근접할 것임
   <img src="https://user-images.githubusercontent.com/32586985/75843754-4e59fb00-5e17-11ea-8e94-1a258a4a0b29.PNG">
   
+- 해당 예제에서는 embeddings을 hand-engineered하였음 / 실제로는 embeddings은 자동으로 학습되며 그것이 collaborative filtering models의 힘임
+- 이 접근법의 collaborative nature은 모델이 embeddings를 학습할 때 정확함 
+- movies를 위한 embeddings vectors가 교정된다고 가정해보자 / 모델은 유저들을 위해 그들의 선호도를 잘 설명해줄 embeddings vector를 학습할 것임 / 결과적으로 유사한 선호도와 함께한 유저의 embeddings은 같이 close 될 것임 
+- 이와 비슷하게 유저를 위한 embeddings가 교정된다면, feedback matrix를 잘 설명해줄 movie embeddings를 학습해줄 것임
+- 결과적으로 similar users가 좋아한 embeddings movies는 embedding space에서 가까워질 것임
+
+- Matrix Factorization
+  - Matrix factorization은 간단한 embedding model임 
+  - feedback matrix <img src="https://user-images.githubusercontent.com/32586985/75857863-55decb80-5e3a-11ea-9f6f-31076530982c.PNG">, m은 유저(혹은 queries)의 수이고, n은 items의 수라고 하자
+    - A user embedding matrix <img src="https://user-images.githubusercontent.com/32586985/75857940-86266a00-5e3a-11ea-92a6-ee86a93771e0.PNG">, row i가 user i를 위한 embedding일 때    
+    - An item embedding matrix <img src="https://user-images.githubusercontent.com/32586985/75858020-af46fa80-5e3a-11ea-8bca-b633bffb0e86.PNG">, row j가 item j를 위한 embedding일 때     
+  <img src="https://user-images.githubusercontent.com/32586985/75858092-d00f5000-5e3a-11ea-9c56-ef7a498ba332.PNG">
+  
+    - embeddings은 UxV^T의 곱 같은 것이 feedback matrix A의 가장 좋은 접근방식임
+    - UxV^T의 전체의 (i,j)를 보는 것은 <Ui, Vj>, user i, item j의 embeddings의 내적 값으로 간단히 표현가능함 (A(i,j))와 근접하길 바라는)
+
+- Choosing the Objective Function
+  - 하나의 직관적인 objective function은 squared distance임 / 이렇게 하기 위해서 확인되는 entries에서의 모든 pairs를 넘은 squared errors의 합을 최소화해야함
+  <img src="https://user-images.githubusercontent.com/32586985/75858528-c2a69580-5e3b-11ea-8722-3eb5499101b5.PNG">
+  
+  - 이 objective function에서는 오직 확인된 pairs(i,j)만을 합을 만들 수 밖에 없음 / 즉 feedback matrix에 non-zero values를 넘어선 값만 가능
+  - 하지만 오직 값 하나만을 가지고 합을 구하는 것은 좋은 idea가 아님 / all ones의 matrix는 최소한의 손실을 가질 것이고 모델은 효과적인 recommendations을 만들어 생산할 수 없을 것이고 좋지 않게 구동될 것임
+  <img src="https://user-images.githubusercontent.com/32586985/75858916-7019a900-5e3c-11ea-8c1b-c65123304b8b.PNG">
+  
+  - 아마도 unobeserved된 값을 zero로 할 것이고 matrix안에서 모든 entries로 합을 구할 것임
+  - 이것은 A와 근사값인 UxV^T사이에 frobenius distance의 squared를 최소화한 것과 일치함
+  <img src="https://user-images.githubusercontent.com/32586985/75859106-c4bd2400-5e3c-11ea-871a-8242595dac05.PNG">
+  
+  - 이 이차식을 matrix의 Singular Value Decomposition (SVD)를 통해서 해결할 수 있을 것임
+  - 하지만 SVD는 좋은 풀이법은 아님/ 실제 적용을 할 때 matrix A는 매우 희소할 수 있기 떄문임
+  - 예를들어, Youtube의 모든 비디오를 특정 유저가 본 모든 비디오와 비교한다고 했을 때 / UxV^T는 0에 근접할 것이고, poor generalization performance를 보일 것임
+  - 이와 반대로 Weighted Matrix Factorization은 objective를 아래의 두 합으로 decompose할 것임
+    - A sum over observed entries
+    - A sum over unobserved entries (treated as zeroes)
+    <img src="https://user-images.githubusercontent.com/32586985/75859409-4c0a9780-5e3d-11ea-8eff-f90b5be6887f.PNG">
+    
