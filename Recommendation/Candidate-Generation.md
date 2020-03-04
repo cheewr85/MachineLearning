@@ -86,3 +86,42 @@
   - 그러므로 모델은 hadn-engineered features에서만 좋음
   - 모델은 오직 유저의 현재의 intersets에 기반한 recommendations을 만듬 / 다른 한편으로는 모델은 유저의 현재의 interests의 확장하는데 능력에 한계가 있음    
     
+## Collaborative Filtering
+- content-based filtering의 한계를 보완하기 위해서 collaborative filtering은 추천을 제공하기 위해서 users와 items사에어서 similarities를 동시에 사용함
+- 이것은 serendipitous recommendations을 제공함 / 즉, collaborative filtering models은 user A에게 item을 similar user B의 interests에 기반하여 추천해줌
+- 더욱이 embeddings은 features의 hand-engineering에 의존하지 않고 자동으로 학습함
+
+- A Movie Recommendation Example
+  - 아래의 feedback matrix로 구성된 training data가 된 movie recommendation system을 생각해보자
+    - Each row represents a user
+    - Each column represents an item (a movie)
+  - movie에 대한 feedback은 하나 혹은 두개의 카테고리로 빠짐
+    - Explicit:users specify how much they liked a particular movie by providing a numerical rating
+    - Implicit:If a user watches a movie, the system infers that the user is interested.
+  - 단순화하기 위해서, feedback matrix를 binary로 가정함 / 즉, 1은 영화의 흥미를 나타냄
+  - user가 홈페이지를 방문할 때, 시스템은 아래 두 가지를 바탕으로 추천함
+    - similarity to movies the user has liked in the past
+    - movies that similar users liked
+  - 묘사를 위해서 아래의 예시를 보자
+  <img src="https://user-images.githubusercontent.com/32586985/75843119-9e37c280-5e15-11ea-9c61-b198924304c6.PNG">
+  
+- 1D Embedding
+  - 각각의 영화를 아이들을 위한 영화일 경우(negative values) 혹은 어른들을 위한 영화일 경우(positive values)로 표현한 [-1,1] scalar로 할당한다고 해보자
+  - 또한 각각의 유저를 유저의 interest가 아이들의 영화의 있다면(-1의 근접) 혹은 어른들의 영화의 있다면(+1의 근접) 그것을 묘사한 각각의 유저를 [-1,1]의 scalar로 할당한다고 해보자
+  - movie embedding과 user embedding의 product는 유저가 좋아하는 것을 기대하는 영화를 위해 높아야 함
+  <img src="https://user-images.githubusercontent.com/32586985/75843378-5b2a1f00-5e16-11ea-9d92-d781c4237446.PNG">
+  
+  - 아래의 다이어그램을 보면, 각각의 체크마크는 특정 유저가 보는 영화를 나타냄 
+  - 3,4번째 유저는 이 feature에 설명된 것과 맞게 선호함 / 3번째 유저는 아이들을 위한 영화를 선호하고 4번째 유저는 어른들을 위한 영화를 선호함 / 하지만 1,2번째 유저의 선호도는 single feature에 의해 잘 설명되지 않음
+  <img src="https://user-images.githubusercontent.com/32586985/75843513-ad6b4000-5e16-11ea-8a1e-508b780f9fd8.PNG">
+  
+- 2D Embedding
+  - 모든 유저의 선호도를 설명하기에는 하나의 feature로는 부족함 / 이 문제를 해결하기 위해서 second feature를 추가해보자 
+  - 각각의 영화를 blockbuster 혹은 arthouse 영화로 정도를 정해보자
+  - 두 번째 feature에서는 각가의 영화를 아래의 2차원 embedding으로 나타낼 수 있음
+  <img src="https://user-images.githubusercontent.com/32586985/75843667-0509ab80-5e17-11ea-9adb-4deab31bf51e.PNG">
+  
+  - feedback matrix에서 잘 설명하기 위해서 같은 embedding space에 유저들을 다시 배치하였음
+  - 각각의 (user,item) pair는, 0이 아니라면 유저가 영화를 봤을 때 user embedding과 item embedding의 내적이 1에 근접할 것임
+  <img src="https://user-images.githubusercontent.com/32586985/75843754-4e59fb00-5e17-11ea-8e94-1a258a4a0b29.PNG">
+  
