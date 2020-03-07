@@ -228,70 +228,7 @@
         - Block (1,0)은 item features에 multi-hot encoding임 
         
 - 프로그래밍 실습
-  - MovieLens dataset을 기반으로 제작할 것임
-  - SetUp
-  ```python
-     from __future__ import print_function
-     
-     import numpy as np
-     import pandas as pd
-     import collections
-     from mpl_toolkits.mplot3d import Axes3D
-     from IPython import display
-     from matplotlib import pyplot as plt
-     import sklearn
-     import sklearn.manifold
-     import tensorflow as tf
-     tf.logging.set_verbosity(tf.logging.ERROR)
-     
-     # Add some convenience functions to Pandas DataFrame
-     pd.options.display.max_rows = 10
-     pd.options.display.float_format = '{:.3f}'.format
-     def mask(df, key, function):
-       """Returns a filtered dataframe, by applying function to key"""
-       return df[function(df[key])]
-     def flatten_cols(df):
-       df.columns = [' '.join(col).strip() for col in df.columns.values]
-       return df
-     
-     pd.DataFrame.mask = mask
-     pd.DataFrame.flatten_cols = flatten_cols
-     
-     # Install Altair and activate its colab renderer.
-     print("Installing Altair...")
-     !pip install git+git://github.com/altair-viz/altair.git
-     import altair as alt
-     alt.data_transformers.enable('default', max_rows=None)
-     alt.renderers.enable('colab')
-     print("Done installing Altair.")
-     
-     # Install spreadsheets and import authentication module
-     USER_RATINGS = False
-     !pip install --upgrade -q gspread
-     from google.colab import auth
-     import gspread
-     from oauth2client.client import GoogleCredentials
-  ```
-<img src="https://user-images.githubusercontent.com/32586985/76087365-5bcedb00-5ff9-11ea-9b35-fd9323bfed95.png">
-
-- Download the MovieLens Data, and create DataFrames containing movies, users, and ratings
-```python
-   # Download MovieLens data.
-   print("Downloading movielens data...")
-   from urllib.request import urlretrieve
-   import zipfile
-   
-   urlretrieve("http://files.grouplens.org/datasets/movielens/ml-100k.zip", "movielens.zip")
-   zip_ref = zipfile.ZipFile('movielens.zip', "r")
-   zip_ref.extractall()
-   print("Done. Dataset contains:")
-   print(zip_ref.read('ml-100k/u.info'))
-   
-   # Load each data set (users, movies, and ratings).
-   users_cols = ['user_id', 'age', 'sex', occupation', 'zip_code']
-   
-```
-
+  - 너무 방대하므로 추후에 필요시 직접 적용해 볼 예정임 
 ## Deep Neural Network Models
 - matrix factorization의 한계가 있음
   - side features를 사용하는 것에 어려움(즉, query ID/item ID를 넘어선 어떠한 features) / 결과적으로 모델은 학습세트에서 나타내는 오직 user나 item만을 queried할 수 있음
@@ -386,6 +323,5 @@
       - DNN 모델은 Matrix Factorization의 많은 제한을 해결할 수 있음 / 하지만 query를 학습하는 것은 더 힘듬 
       - 아래의 table은 두 모델 사이의 중요한 차이점을 보여줌
       <img src="https://user-images.githubusercontent.com/32586985/75887029-82abd680-5e6c-11ea-8d3b-3e05962565ec.png">
-      
       
       
