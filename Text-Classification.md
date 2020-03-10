@@ -181,5 +181,22 @@
     - 초기 모델을 지속적인 반복을 통해서 계속해서 향상시킬 수 있음
     <img src="https://user-images.githubusercontent.com/32586985/76325713-f9dce100-632a-11ea-935c-542f43640141.PNG">
     
-    
+    - 플로우차트를 보며 핵심 질문은 아래와 같음
+      - 1.어떠한 learning algorithm과 모델을 사용해야하는가?
+      - 2.어떻게 data를 text와 label사이의 관계를 효과적으로 학습하게끔 준비할 수 있을까?
+    - 2번째 질문의 정답은 1번째 질문에 달려있음 / 어떤 모델을 고르는에 따라서 모델이 preprocess data를 얻는 방식이 다를것임
+    - 모델은 두 개의 카테고리로 광범위하게 분류할 것임 / word를 ordering information(sequence models)로 사용하거나 아니면 단지 words(n-gram models)의 bags(sets)으로 text를 봄 
+    - sequence models의 종류는 convolutional neural networks(CNNs), recurrent neural network(RNNs), 그들의 variations을 포함하고 있음 
+    - n-gram 모델의 타입은 logistic regression, simple multi-layer perceptrons(MLPs, or fully-connected neural networks), gradient boosted trees와 support vector machines를 포함하고 있음
+    - 실험에 따르면, samples의 수 (S)의 비율과 sample당 words의 수(W)의 비율이 모델이 잘 수행하는 것과 연관되어 있는 것으로 관찰됨
+    - 이 비율의 값이 작다면 (<1500), small multi-layer perceptron이 n-grams를 input으로(Option A라고 부르는)더 잘 수행하거나 적어도 sequence models로써 수행하는 것을 가질 것임
+    - MLPs는 정의하고 이해하는데 쉬우며, sequence models보다 time을 계산하는것이 덜 함 
+    - 이 비율의 값이 크다면 (>=1500), sequence model (Option B)를 사용하라 
+    - 이 과정을 따르면, samples/words-per-sample ration에 기반하여 선택한 model type을 위한 relevant subsections(labeled A or B)를 넘길 수 있음 
+    - IMDb review dataset의 따르면, samples/words-per sample의 비율이 144정도되고, 이것은 MLP model을 만드는것을 의미함 
+    - 만약 위에 플로우차트를 따르게 된다면 문제에 대한 최적화된 결론이 나오지 않을 수 있음을 이해해야함 / 이유는 아래와 같음
+      - 목표가 다를 수 있음 / 가장 짧은 가능한 계산 시간을 이용하여 최고의 정확성을 측정하는것임
+      - 대체 flow가 더 좋은 결과를 나타낼 수 있음 area under the curve(AUC)로 optimizing할 때 그럴 수 있음
+      - 일반적이고 흔한 알고리즘을 선택할 것임 field가 계속해서 발전할 때 / 새로운 cutting-edge 알고리즘과 enhancements가 데이터와 연관될 수 있고 더 나은 수행을 할 수 있음
+      - 몇 개의 dataset을 플로우차트를 유효화할때 사용될 때, dataset의 대체 플로우를 사용하는 걸 선호하는 특정 특성화가 있을 수 있음 
 
