@@ -1,5 +1,6 @@
 ## 텍스트분류
-- Introduction
+
+### Introduction
   - Text classification algorithms은 scale에서 텍스트 데이터를 생성하는 소프트웨어 시스템에서의 다양성의 핵심임
   - Email software은 들어오는 mail이 inbox에 들어가거나 spam folder에 필터링 되는지 결정하는데 text classification을 사용함
   - topic classification과 text document를 이미 설정된 topic 중 하나로 categorizing하는 두 가지의 예시가 있음
@@ -24,7 +25,7 @@
       - Step6:Deploy Your Model
       <img src="https://user-images.githubusercontent.com/32586985/76318969-da8d8600-6321-11ea-8473-57663501f405.PNG">
       
-- Step 1:Gather Data
+### Step 1:Gather Data
   - 데이터를 모으는것은 어떠한 supervised machine learning 문제를 해결하는데 있어서 중요한 과정임
   - text classifier은 제대로 만들어진 dataset으로부터만 좋은 성능을 발휘함
   - 만약 해결하고 싶거나 흥미있는 특정 문제가 없다면, 일반적으로 text classification을 탐색하게 된다면, 충분한 양의 오픈소스 데이터 세트를 제공할 것임   
@@ -39,7 +40,7 @@
   - 이 dataset은 IMDb 웹사이트에 사람들이 올린 movie review뿐만아니라 reviewer들이 영화를 좋아하는지 싫어하는지를 상응하는 positive나 negative한 label을 포함함  
   - 이것은 sentiment analysis problem에서의 classic한 예제임
 
-- Step 2:Explore Your Data
+### Step 2:Explore Your Data
   - model을 만들고 학습하는 것은 workflow의 일부분의 불가함
   - data의 특성을 이해하는 것은 모델을 더 잘 만들게 할 수 있음
   - 이것은 단순히 높은 정확성을 포함하는 것을 의미할 수 있음
@@ -147,7 +148,7 @@
     <img src="https://user-images.githubusercontent.com/32586985/76322536-df086d80-6326-11ea-9bc6-3e5b1fc779d8.PNG">
     <img src="https://user-images.githubusercontent.com/32586985/76322570-e891d580-6326-11ea-8f3c-9c820dac9ff7.PNG">
     
-- Step 2.5:Choose a Model
+### Step 2.5:Choose a Model
   - 이 시점에서는 dataset을 모으고 data의 주요한 특성에 대한 insight를 얻었을 것임
   - Step2에서 얻은 metrics를 바탕으로 어떤 classification model을 사용해야하는지 생각해야함
   - 이것은 어떻게 우리가 numeric input으로 예상되는 algorithm으로 text data를 나타내는지(data preprocessing이나 vectorization으로 불리우는)나 어떤 모델의 타입을 써야하는 것과 모델을 사용하는데 어떤 configuration parameters를 사용해야는지 등 생각해봐야함을 의미함    
@@ -200,3 +201,38 @@
       - 일반적이고 흔한 알고리즘을 선택할 것임 field가 계속해서 발전할 때 / 새로운 cutting-edge 알고리즘과 enhancements가 데이터와 연관될 수 있고 더 나은 수행을 할 수 있음
       - 몇 개의 dataset을 플로우차트를 유효화할때 사용될 때, dataset의 대체 플로우를 사용하는 걸 선호하는 특정 특성화가 있을 수 있음 
 
+### Step3: Prepare Your Data
+  - 모델의 데이터를 넣기전에, 모델이 이해할 수 있는 format으로 변환을 해야함 
+  - 먼저 우리가 모은 data samples 대해서 특정한 순서일 수도 있음 / 어떠한 정보도 texts와 labels사이의 관계에 영향을 주는 samples의 순서와 연관되는 것을 원하지 않음 / 예를들어 만약 dataset이 class에 의해서 sort되고 그리고 그때 training/validation sets으로 나뉘어진다면 이러한 sets은 전체적인 data의 분포에 대해서 representative되진 않을 것임 
+  - 모델을 확실시 하기 위한 간단한 최고의 방법은 데이터가 무엇인가를 하기전에 항상 데이터를 순서대로 섞는것에 의해 모델의 영향을 주지않는 것임 / 만약 데이터가 training과 validation sets으로 이미 나뉘어졌다면 validation data를 training data를 transform하는것과 같은 방식으로 transform을 확실히 해라 / 만약 training과 validation sets으로 이미 나뉘어지지 않았다면 shuffling한 후에 samples를 split할 수 있음 / 일반적으로 samples의 80%를 training으로 사용하고 20%를 validation으로 사용함 
+  - 그 다음에는 machine learning algorithms을 input으로써 numbers를 take하라 / 이것은 text를 numerical vectors로 변환할 것이라는 것을 의미함 
+  - 이 과정을 위해 2가지 과정이 필요함
+    - Tokenization / texts를 texts와 labels사이의 관계를 good generalization할 수 있는 words나 더 작은 sub-texts로 나누어라 / 이것은 dataset의 vocabulary를 결정함 (데이터에 나타나는 unique tokens의 set)
+    - Vectorization / 이러한 texts를 characterize하기 위한 good numerical measure를 정의하라 
+  - n-gram vectors와 sequence vectors를 두 개의 과정에서 수행시 어떻게 되는지 보자 / feature selection과 normalization techniques를 사용함으로써 vector representations을 어떻게 최적화하는지 보자
+  - N-gram vectors(Option A)
+    - n-gram models를 통해서 tokenization과 vectorization이 어떻게 되는지 볼 것임 / feature selection과 normalization techniques를 사용함으로써 n-gram representation을 어떻게 최적화하는지 볼 것임 
+    - n-gram vector에서는 text는 unique n-grams의 collection으로 나타날 것임 / n의 인접한 token의 그룹(일반적으로 words) / 만약 'The mouse ran up the clock'을 예를들면 word unigrams(n=1)은 'the','mouse','ran','up','clock'임 / word bigrams(n=2)일 때는 'the mouse', 'mouse ran', 'ran up', 'up the', 'the clock'등이 됨 
+    - Tokenization
+      - 단어를 unigrams+bigrams으로 tokenizing하는것은 계산시간이 덜 걸린다는동안 좋은 정확성을 제공하는것을 확인함 
+    - Vectorization
+      - text samples를 n-grams으로 나눌때, 이러한 n-grams을 machine learning models이 생산할 수 있는 numerical vectors로 바꿀 수 있음 / 아래의 예시는 2개의 texts로 생성된 bigrams과 unigrams에 할당된 indexes를 보여줌 
+      ```python
+         Texts: 'The mouse ran up the clock' and 'The mouse ran down'
+         Index assigned for every token: {'the': 7, 'mouse': 2, 'ran': 4, 'up': 10,
+           'clock': 0, 'the mouse': 9, 'mouse ran': 3, 'ran up': 6, 'up the': 11, 'the
+         clock': 8, 'down': 1, 'ran down': 5}
+      ```
+    - n-grams으로 indexes가 할당될 때 우리는 일반적으로 아래의 옵션중 하나를 사용하여 vectorize함   
+      - One-hot encoding
+        - 모든 sample text는 presence를 가르키는 vector혹은 text의 token의 absence를 나타냄 
+        ```python
+           'The mouse ran up the clock' = [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1]
+        ```
+      - Count encoding
+        - 모든 sample text는 text의 token의 count를 가르키는 vector로써 나타냄 / 'the'라는 unigram과 상응하는 element는 'the'라는 단어가 2번 나왔기 때문에 2로 나타냄을 알고 있어라
+        ```python
+           'The mouse ran up the clock' = [1, 0, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1]
+        ```
+      - Tf-idf encoding
+         - 
