@@ -249,5 +249,70 @@
       - 더 중요한 것은 아래의 사진을 보면 20000 features 사이에 정확히 절정을 찍고, 이에 3배에 해당하는 더 많은 features를 추가할 때 기여를 매우 적게 하고 종종 overfitting을 하거나 performance를 감소시킴 
       <img src="https://user-images.githubusercontent.com/32586985/77307520-bf1c7500-6d3c-11ea-9260-a89ac778e65d.PNG">
       
-      
-         
+    - Normalization
+      - Normalization은 모든 feature samples의 값을 small하고 similar한 값으로 변환함 / 이것은 learning algorithms에서 gradient descent convergence를 간단하게 함 / 우리가 본 것을 통해서 데이터를 생성하는 동안에 normalization은 text classification 문제에서 더 많은 값을 추가하는 것처럼 보이진 않음 / 이 과정은 스킵하는 걸 추천함
+      - 아래의 코드를 아래의 과정을 모두 포함하여 추가하라
+        - Tokenize text samples into word uni+bigrams,
+        - Vectorize using tf-idf encoding
+        - Select only the top 20,000 features from the vector of tokens by discarding tokens that appear fewer than 2 times and using f_classif to calculate feature importance
+        ```python
+           from sklearn.feature_extraction.text import TfidfVectorizer
+           from sklearn.feature_selection import SelectKBest
+           from sklearn.feature_selection import f_classif
+
+           # Vectorization parameters
+           # Range (inclusive) of n-gram sizes for tokenizing text.
+           NGRAM_RANGE = (1, 2)
+
+           # Limit on the number of features. We use the top 20K features.
+           TOP_K = 20000
+
+           # Whether text should be split into word or character n-grams.
+           # One of 'word', 'char'.
+           TOKEN_MODE = 'word'
+
+           # Minimum document/corpus frequency below which a token will be discarded.
+           MIN_DOCUMENT_FREQUENCY = 2
+
+           def ngram_vectorize(train_texts, train_labels, val_texts):
+               """Vectorizes texts as n-gram vectors.
+
+               1 text = 1 tf-idf vector the length of vocabulary of unigrams + bigrams.
+
+               # Arguments
+                   train_texts: list, training text strings.
+                   train_labels: np.ndarray, training labels.
+                   val_texts: list, validation text strings.
+
+               # Returns
+                   x_train, x_val: vectorized training and validation texts
+               """
+               # Create keyword arguments to pass to the 'tf-idf' vectorizer.
+               kwargs = {
+                       'ngram_range': NGRAM_RANGE,  # Use 1-grams + 2-grams.
+                       'dtype': 'int32',
+                       'strip_accents': 'unicode',
+                       'decode_error': 'replace',
+                       'analyzer': TOKEN_MODE,  # Split text into word tokens.
+                       'min_df': MIN_DOCUMENT_FREQUENCY,
+               }
+               vectorizer = TfidfVectorizer(**kwargs)
+
+               # Learn vocabulary from training texts and vectorize training texts.
+               x_train = vectorizer.fit_transform(train_texts)
+
+               # Vectorize validation texts.
+               x_val = vectorizer.transform(val_texts)
+
+               # Select top 'k' of the vectorized features.
+               selector = SelectKBest(f_classif, k=min(TOP_K, x_train.shape[1]))
+               selector.fit(x_train, train_labels)
+               x_train = selector.transform(x_train).astype('float32')
+               x_val = selector.transform(x_val).astype('float32')
+               return x_train, x_val
+        ```
+      - n-gram vector가 나타내는 것과 같이, word order와 grammar에 대한 많은 정보를 제거함 (최상의 상태는 n>1일떄 몇몇 partial ordering information에 대해서 유지하는것임)
+      - 이것은 bag-of-words 접근법이라고 함 / 이 representation은 모델이 logistic regression, multi-layer perceptrons, gradient boosting machines, supprort vector machines같이 account를 ordering하는 것을 가지지 않을 때 conjunction하기도 함 
+  
+  - Sequence Vectors(Option B)
+    - 
