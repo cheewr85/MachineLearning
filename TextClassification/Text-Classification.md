@@ -235,4 +235,19 @@
            'The mouse ran up the clock' = [1, 0, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1]
         ```
       - Tf-idf encoding
-         - 
+         - 두 개의 접근법을 넘어선 문제는 모든 문서에서 비슷한 결과가 발생하는 단어가 penalized되지 않는 것임 (예를들어, 단어가 dataset안의 text sample로써 특별하지 않을 경우)
+         - 예를들어, 'a'같은 단어는 모든 texts에서 빈번하게 나타남 / 그래서 다른 의미있는 단어가 유용하지 않는것보다 더 token이 높게 count 됨
+         ```python
+            'The mouse ran up the clock' = [0.33, 0, 0.23, 0.23, 0.23, 0, 0.33, 0.47, 0.33,
+            0.23, 0.33, 0.33] (See Scikit-learn TfidfTransformer)
+         ```
+    - 많은 vector의 표현방법이 있지만 위의 세가지 경우가 일반적임 
+    - tf-idf encoding이 다른 두 개의 encoding보다 더 좋은 성능을 발휘한 것을 보았고 이 방법을 n-gram을 vectorizing할 때 방법으로 쓰는 것으로 추천함 / 하지만 이것은 더 많은 메모리를 차지하고 계산하는데 시간이 더 걸리며, 많은 dataset이 있다는 것을 기억해야함 
+    - Feature selection
+      - dataset의 모든 texts를 uni+bigram token의 단어로 변환할 때, 우리는 수천개의 token이 생길 수도 있음 / 이 모든 tokens이나 features가 label prediction에 기여하는 것은 아님 / 그래서 몇몇 tokens을 없앨것임 / 예를들어, dataset를 넘어서 극히 드물게 나타나는 것들 / 그리고 feature importance를 측정하고(각각의 token이 얼마나 label predictions의 기여하는가) 그리고 가장 informative한 tokens만을 포함시킴 
+      - features와 labels과 상응하는 것을 가지고 importance score feature를 output으로 하는 통계학적인 함수가 몇 개 있음 / f_classif, chi2 2개의 함수를 일반적으로 씀 / 이 실험은 이러한 함수들이 동등하게 잘 수행되는지 확인할 것임
+      - 더 중요한 것은 아래의 사진을 보면 20000 features 사이에 정확히 절정을 찍고, 이에 3배에 해당하는 더 많은 features를 추가할 때 기여를 매우 적게 하고 종종 overfitting을 하거나 performance를 감소시킴 
+      <img src="https://user-images.githubusercontent.com/32586985/77307520-bf1c7500-6d3c-11ea-9260-a89ac778e65d.PNG">
+      
+      
+         
