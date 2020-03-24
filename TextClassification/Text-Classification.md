@@ -315,4 +315,89 @@
       - 이것은 bag-of-words 접근법이라고 함 / 이 representation은 모델이 logistic regression, multi-layer perceptrons, gradient boosting machines, supprort vector machines같이 account를 ordering하는 것을 가지지 않을 때 conjunction하기도 함 
   
   - Sequence Vectors(Option B)
-    - 
+    - 연속되는 문단에서 연속된 모델에서 tokenization과 vectorization을 어떻게 하는지 볼 것임 / 또한 feature selection과 normalization techniques를 사용해서 sequence representation을 어떻게 최적화하는지 볼 것임
+    - 몇몇 text samples에서 word order가 text의 의미에서 중요함 / 예를들어 'I used to hate my commute. My new bike changed that completely라는 문장은 순서대로 읽는다면 이해할 수 있다 / CNNs,RNNs같은 모델은 sample에서 단어의 순서로부터 의미를 추론할 수 있음 / 이러한 모델에서 text를 order를 보존하면서 tokens의 순서로써 text를 나타낼 수 있음
+    - Tokenization
+      - Text는 characters의 순서뿐 아니라 words의 순서로써 나타내짐 / word-level representation을 사용하는것이 character tokens보다 더 좋은 성능을 제공함을 발견함 / 이것은 또한 industry에 따르는 일반적인 norm임 / character tokens을 사용하는겅느 texts가 일반적이지 않게 많은 typos를 가지고 있을때만 확실함
+    - Vectorization
+      - text samples를 sequences of words로써 변환할 때, 우리는 이 sequences를 numerical vectors로 바꿀 수 있음 / 아래의 예시를 보게 된다면 indexes가 2개의 texts에서 생성된 unigrams으로써 할당됨을 볼 수 있고 그리고 그때 첫번째 text의 token indexes의 sequence가 변환됨을 알 수 있음 / 
+      ```python
+         Texts: 'The mouse ran up the clock' and 'The mouse ran down'
+         Index assigned for every token: {'clock': 5, 'ran': 3, 'up': 4, 'down': 6, 'the': 1, 'mouse': 2}.
+         NOTE: 'the' occurs most frequently, so the index value of 1 is assigned to it.
+         Some libraries reserve index 0 for unknown tokens, as is the case here.
+         Sequence of token indexes: 'The mouse ran up the clock' = [1, 2, 3, 4, 1, 5]
+      ```
+    - token sequences를 vectorize할 수 있는 두 가지의 옵션이 있음 
+      - One-hot encoding:n이 vocabulary의 크기일때 n차원 공간의 word vector를 사용함으로써 sequences를 나타낼 수 있음 / representation은 characters로 tokenizing을 할 때 잘 작동하고, 그래서 vacabulary가 작음 / words를 tokenizing할 때, vocabulary는 수천개의 tokens을 가질 것이고, one-hot vectors를 매우 밀집되고 비효율적으로 만들것임
+      ```python
+         'The mouse ran up the clock' = [
+           [0, 1, 0, 0, 0, 0, 0],
+           [0, 0, 1, 0, 0, 0, 0],
+           [0, 0, 0, 1, 0, 0, 0],
+           [0, 0, 0, 0, 1, 0, 0],
+           [0, 1, 0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0, 1, 0]
+         ]
+      ```
+      - Word embeddings:Words는 그 자체로 의미가 연결되어 있음 / 결과적으로 우리는 밀집된 vector space에 word tokens을 나타낼 수 있고 words 사이에 location과 distance가 얼마나 의미적으로 similar한 지 가르킴 / 이것을 word embeddings이라고 함
+      <img src="https://user-images.githubusercontent.com/32586985/77384629-34ce2280-6dc9-11ea-98e2-a3daeec6978b.PNG">
+      
+      - sequence models은 종종 그들의 첫번째 layer로써 embedding layer를 가지고 있음 / 이 layer은 학습하는 시기동안 word index sequences를 word embedding vectors로써 변환하여 학습을하고 이것은 각각의 word index가 word's location이 semantic space에서 나타나는 real values의 dense vector를 mapped하는 것을 가지는 것임
+      <img src="https://user-images.githubusercontent.com/32586985/77384756-8b3b6100-6dc9-11ea-9534-7da47f274f9c.PNG">
+      
+    - Feature selection
+      - data에 있는 모든 단어들이 label predictions의 기여하는 것은 아님 / learning process를 우리의 vocabulary로부터 irrelevant words나 rare을 discarding함으로써 learning process를 최적화할 수 있음 / 실제로 자주 사용하는 2만개의 features를 사용하는것이 효율적인것을 확인함 / 이것은 n-gram models에서도 똑같이 적용됨 
+      - sequence vectorization에서의 과정을 보자 / 아래의 코드의 과제는 아래와 같음
+        - Tokenizes the texts into words
+        - Creates a vocabulary using the top 20,000 tokens
+        - Converts the tokens into sequence vectors
+        - Pads the sequences to a fixed sequence length
+        ```python
+           from tensorflow.python.keras.preprocessing import sequence
+           from tensorflow.python.keras.preprocessing import text
+
+           # Vectorization parameters
+           # Limit on the number of features. We use the top 20K features.
+           TOP_K = 20000
+
+           # Limit on the length of text sequences. Sequences longer than this
+           # will be truncated.
+           MAX_SEQUENCE_LENGTH = 500
+
+           def sequence_vectorize(train_texts, val_texts):
+               """Vectorizes texts as sequence vectors.
+
+               1 text = 1 sequence vector with fixed length.
+
+               # Arguments
+                   train_texts: list, training text strings.
+                   val_texts: list, validation text strings.
+
+               # Returns
+                   x_train, x_val, word_index: vectorized training and validation
+                       texts and word index dictionary.
+               """
+               # Create vocabulary with training texts.
+               tokenizer = text.Tokenizer(num_words=TOP_K)
+               tokenizer.fit_on_texts(train_texts)
+
+               # Vectorize training and validation texts.
+               x_train = tokenizer.texts_to_sequences(train_texts)
+               x_val = tokenizer.texts_to_sequences(val_texts)
+
+               # Get max sequence length.
+               max_length = len(max(x_train, key=len))
+               if max_length > MAX_SEQUENCE_LENGTH:
+        max_length = MAX_SEQUENCE_LENGTH
+
+               # Fix sequence length to max value. Sequences shorter than the length are
+               # padded in the beginning and sequences longer are truncated
+               # at the beginning.
+               x_train = sequence.pad_sequences(x_train, maxlen=max_length)
+               x_val = sequence.pad_sequences(x_val, maxlen=max_length)
+               return x_train, x_val, tokenizer.word_index 
+        ```
+    - Label vectorization
+      - sample text data를 어떻게 numerical vectors로 변환했는지 보았음 / 비슷한 과정이 labels에 반드시 적용되어야함 / 우리는 labels을 [0, num_classes - 1]의 범위로 values를 간단히 변환할 수 있음 / 예를들어 만약 3개의 classes가 있다면 이것을 나타내는것으로 0,1,2의 값을 사용할 수 있음 / network는 이러한 값들을 나타내는 one-hot vecotrs를 사용할 것임(labels 사이에 부정확한 관계를 추론하는것을 피하기 위해서) 이 표현은 neural network에서 사용한 last-layer activation function과 loss function에 기인함
+    
