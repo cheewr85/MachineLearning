@@ -269,3 +269,6 @@
     model.save('IMDb_mlp_model.h5')
     return history['val_acc'][-1], history['val_loss'][-1]
   ```
+
+## Step 5:Tune Hyperparameters
+- 
