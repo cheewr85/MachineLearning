@@ -271,4 +271,10 @@
   ```
 
 ## Step 5:Tune Hyperparameters
-- 
+- 모델을 정의하고 학습시키기 위해서 hyperparameters의 수를 선택해야만 함 / 예시와 좋은 practice recommendations과 직관에 의존해야만 함 / 하지만 hyperparameter값의 첫 선택은 좋은 결과를 생성하지 못할 수 있음 / 그것은 학습에 대해서 좋은 starting point가 될 수 있음 / 모든 문제가 다르고 이러한 hyperparameters를 tunnig하는것은 문제의 particularities를 직접 더 잘 나태내는 우리의 모델로써 재정의하는데 도움이 될 수 있음 
+- 아래의 경우를 보아 우리가 사용하는 몇몇의 hyperparameters와 tune이 의미하는 것이 무엇인지 확인해보자
+  - Number of layers in the model:neural network의 layers의 수는 complexity의 indicator임 / value를 선택하는데 주의해야만 함 / 너무 많은 layers은 training data에 대해서 너무 많은 정보를 모델에게 학습하게끔 할 것이고 overfitting을 유발할 것임 / 너무 적은 layers은 모델의 학습 비율을 제한하여 underfitting을 유발시킬 수 있음 / text classification datasets를 통해서 하나,두개,3개의 layer MLPs를 확인해 볼 수 있음 / 2개의 layers의 모델이 잘 구동되고 몇몇 케이스에서는 3개의 layer 모델이 더 잘 구동되기도 함 / 이와 비슷하게 4개 6개 layers의 sepCNNs를 시도해볼 수 있고 4개의 layer models이 잘 구현될 수도 있음 
+  - Number of units per layer:layer의 units은 layer가 구동이되기 위한 transformation을 위해 정보를 반드시 가지고 있어야함 / 첫번째 layer은 features의 수로써 나타내어지고, 연속되는 layers에는 units의 수가 expanding의 선택이나 이전의 layer로부터의 representation의 contracting에 의존함 / layers 사이에 information loss를 최소화하려고 해보아라 / unit values를 (8, 16, 32, 64)의 범위를 가지고 있고 32/64 units이 잘 실행되었다
+  - Dropout rate:Dropout layers은 model의 regularization에 사용되곤 함 / overfitting의 precaution으로써 drop을 input의 일부로 정의할 것임 / 0.2-0.5의 범위를 추천함
+  - Learning rate:반복들 사이에서 neural network weights가 바뀌는 비율임 / 큰 학습 비율은 weights의 큰 swings을 일으킬 것이고 그것들의 최적화된 값을 찾을 순 없을 것임 / 작은 학습 비율이 좋지만 model이 converge를 위해서 많은 반복을 할 것임 / 좋은 아이디어는 시작은 작게 1e-4정도로 하고 만약 학습이 느려진다면 값을 증가시켜봄 / 만약 모델이 학습을 하지 않는다면 learning rate를 낮춰보면 됨 
+  
