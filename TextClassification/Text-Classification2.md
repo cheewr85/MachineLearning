@@ -277,4 +277,79 @@
   - Number of units per layer:layer의 units은 layer가 구동이되기 위한 transformation을 위해 정보를 반드시 가지고 있어야함 / 첫번째 layer은 features의 수로써 나타내어지고, 연속되는 layers에는 units의 수가 expanding의 선택이나 이전의 layer로부터의 representation의 contracting에 의존함 / layers 사이에 information loss를 최소화하려고 해보아라 / unit values를 (8, 16, 32, 64)의 범위를 가지고 있고 32/64 units이 잘 실행되었다
   - Dropout rate:Dropout layers은 model의 regularization에 사용되곤 함 / overfitting의 precaution으로써 drop을 input의 일부로 정의할 것임 / 0.2-0.5의 범위를 추천함
   - Learning rate:반복들 사이에서 neural network weights가 바뀌는 비율임 / 큰 학습 비율은 weights의 큰 swings을 일으킬 것이고 그것들의 최적화된 값을 찾을 순 없을 것임 / 작은 학습 비율이 좋지만 model이 converge를 위해서 많은 반복을 할 것임 / 좋은 아이디어는 시작은 작게 1e-4정도로 하고 만약 학습이 느려진다면 값을 증가시켜봄 / 만약 모델이 학습을 하지 않는다면 learning rate를 낮춰보면 됨 
-  
+  - sepCNN model의 특정지어 tuned하는 추가적인 hyperparameters가 있음
+    - 1.Kernel size:convolution window의 크기 / 3 or 5의 값을 가짐
+    - 2.Embedding dimensions:word embeddings을 나타내는데 사용하길 원하는 차원의 수이며 예를들어 각 word vector의 크기임 / 50~300d정도의 값임 / 200의 pre-trained embedding layer에 dimensions을 GloVe embeddings으로 사용함 
+  - 이러한 hyperparameters를 가지고 구현하면 잘 작동하는것을 볼 수 있음 / 사용되는 case에서 제일 잘 수행되는 hyperparameters를 선택할 때, 모델은 이미 deployed될 것임
+
+## Step 6: Deploy Your Model
+- Google Cloud에 machine learning models을 배포하고 tune할 수 있고 학습할 수 있음 / 모델의 production을 배포하는 가이드의 resources를 아래와 같음
+  - TensorFlow serving에서 keras가 어떻게 export하는지 Tutorial하여라
+  - documentation로 TensorFlow를 serving하라
+  - Google Cloud에 모델을 배포하고 학습하여라
+- 모델을 배포할 때 중요한 사항을 확인하라
+  - production data가 training과 evaluation data가 같은 distribution을 따라야함을 확실히하라
+  - training data를 더 모음으로써 주기적으로 re-evaluate하여라
+  - data distribution이 바뀔때마다 모델을 재학습하라
+
+## 마무리
+- 텍스트 분류는 다양한 products사이에 적용할 수 있는 기본적인 machine learning 문제임 / 이 코스에서는 텍스트분류를 여러가지 steps으로 나누었음 / 각각의 step이 당신이 특정지을 dataset의 특징을 기반하여 customized한 접근법을 하기를 권고함 / 특히 각각의 예제의 words의 수의 samples의 수의 비율을 사용함으로써, model type이 더 빠르게 좋은 수행능력에 다가감을 알고 있어야함 / 이 과정을 통해서 코드를 적용하고 flowchart가 학습하고 이해하는데 도움을 받을 것이고 빠른 해결책으로 남을 것임 
+
+## 부록: 배치학습
+- 매우 큰 datasets은 진행과정에서 메모리 할당에 맞지 않을 수 있음 / 이전 과정에서 메모리에 전체 dataset을 가져오는 pipeline을 설계했고, data를 준비했고, training function의 working set을 pass했음 / 대신에 Keras는 alternative training function을 batches의 data를 pull하며 제공함 / 이것은 data pipeline에 오직 small part of the data로써 transformation을 적용하는 것을 허용함 / 실험동안 우리는 DBPedia, Amazon reviews, Ag news, Yelp reviews같은 datasets에 batching을 사용함
+- 아래의 코드는 어떻게 data batches를 생산하고 fit_generator를 feed하는지 표현함
+```python
+   def _data_generator(x, y, num_features, batch_size):
+    """Generates batches of vectorized texts for training/validation.
+
+    # Arguments
+        x: np.matrix, feature matrix.
+        y: np.ndarray, labels.
+        num_features: int, number of features.
+        batch_size: int, number of samples per batch.
+
+    # Returns
+        Yields feature and label data in batches.
+    """
+    num_samples = x.shape[0]
+    num_batches = num_samples // batch_size
+    if num_samples % batch_size:
+        num_batches += 1
+
+    while 1:
+        for i in range(num_batches):
+            start_idx = i * batch_size
+            end_idx = (i + 1) * batch_size
+            if end_idx > num_samples:
+                end_idx = num_samples
+            x_batch = x[start_idx:end_idx]
+            y_batch = y[start_idx:end_idx]
+            yield x_batch, y_batch
+
+    # Create training and validation generators.
+    training_generator = _data_generator(
+        x_train, train_labels, num_features, batch_size)
+    validation_generator = _data_generator(
+        x_val, val_labels, num_features, batch_size)
+
+    # Get number of training steps. This indicated the number of steps it takes
+    # to cover all samples in one epoch.
+    steps_per_epoch = x_train.shape[0] // batch_size
+    if x_train.shape[0] % batch_size:
+        steps_per_epoch += 1
+
+    # Get number of validation steps.
+    validation_steps = x_val.shape[0] // batch_size
+    if x_val.shape[0] % batch_size:
+        validation_steps += 1
+
+    # Train and validate model.
+    history = model.fit_generator(
+        generator=training_generator,
+        steps_per_epoch=steps_per_epoch,
+        validation_data=validation_generator,
+        validation_steps=validation_steps,
+        callbacks=callbacks,
+        epochs=epochs,
+        verbose=2)  # Logs once per epoch.
+```
